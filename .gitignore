@@ -1,0 +1,3 @@
+.*.swp
+/test/gen_ref
+/test/test.{out,ref}
