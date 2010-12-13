@@ -1,4 +1,5 @@
 require 'rake'
+require 'rake/gempackagetask'
 require 'rake/testtask'
 
 task :default => :test
@@ -22,3 +23,6 @@ end
 file "test/gen_ref" => "test/gen_ref.c" do |t|
     sh %{cc -Wall -Werror -o #{t.name} #{t.prerequisites[0]}}
 end
+
+load 'ruby-xdr.gemspec'
+Rake::GemPackageTask.new(GEMSPEC) {}
