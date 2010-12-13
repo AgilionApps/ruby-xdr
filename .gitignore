@@ -1,4 +1,4 @@
 .*.swp
 /test/gen_ref
-/test/test.{out,ref}
+/test/test.ref
 /pkg

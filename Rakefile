@@ -4,16 +4,15 @@ require 'rake/testtask'
 
 task :default => :test
 
-desc "Run all tests"
-task :test => [ 'test/gen_ref', :deptests ]
-
 # Requires test/test.ref to have been generated. Run 'tests' instead.
 Rake::TestTask.new { |t|
-    t.name = :deptests
     t.libs << 'lib'
     t.test_files = FileList['test/test_*.rb', 'test/ref.rb']
     t.verbose = true
 }
+
+# Add a dependency on test/test.ref, required for test/ref.rb
+task :test => 'test/test.ref'
 
 # Compile and run the reference data generator
 file "test/test.ref" => "test/gen_ref" do |t|
