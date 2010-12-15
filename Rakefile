@@ -2,7 +2,10 @@ require 'rake'
 require 'rake/gempackagetask'
 require 'rake/testtask'
 
-task :default => :test
+task :default => :build
+
+desc "Build code"
+task :build => [ 'lib/xdr/parser.rb' ]
 
 # Requires test/test.ref to have been generated. Run 'tests' instead.
 Rake::TestTask.new { |t|
@@ -11,8 +14,12 @@ Rake::TestTask.new { |t|
     t.verbose = true
 }
 
-# Add a dependency on test/test.ref, required for test/ref.rb
-task :test => 'test/test.ref'
+file "lib/xdr/parser.rb" => "lib/xdr/grammar.ra" do |src|
+    sh %{racc -g -o #{src.name} #{src.prerequisites[0]}}
+end
+
+# Add test dependencies
+task :test => [ :build, 'test/test.ref' ]
 
 # Compile and run the reference data generator
 file "test/test.ref" => "test/gen_ref" do |t|

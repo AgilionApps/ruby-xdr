@@ -1,4 +1,11 @@
+# Editor files
 .*.swp
+*~
+
+# Gem packaging
+/pkg
+
+# Generated files
+/lib/xdr/parser.rb
 /test/gen_ref
 /test/test.ref
-/pkg

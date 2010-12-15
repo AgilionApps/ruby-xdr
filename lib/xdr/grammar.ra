@@ -1,0 +1,156 @@
+# Copyright (C) 2010 Red Hat Inc.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# A parser for the XDR language defined in RFC 4506
+# Note that this parser does not currently support the extended RPC language
+# defined in RFC 5531. However, it does reserve the keywords 'program' and
+# 'version'.
+
+class XDR::Parser
+
+# Non-keywords
+token IDENT CONSTANT
+
+# Keywords
+token BOOL CASE CONST DEFAULT DOUBLE ENUM FLOAT HYPER INT OPAQUE QUADRUPLE
+token STRING STRUCT SWITCH TYPEDEF UNION UNSIGNED VOID
+
+# Keywords from RFC 5531, reserved but not used
+token PROGRAM VERSION
+
+# Keywords implicit in definition of Boolean
+token TRUE FALSE
+
+rule
+specification:
+      definition
+    | specification definition
+
+declaration:
+      type_specifier IDENT
+    | type_specifier IDENT '[' value ']'
+    | type_specifier IDENT '<' value '>'
+    | type_specifier IDENT '<' '>'
+    | OPAQUE IDENT '[' value ']'
+    | OPAQUE IDENT '<' value '>'
+    | OPAQUE IDENT '<' '>'
+    | STRING IDENT '<' value '>'
+    | STRING IDENT '<' '>'
+    | type_specifier '*' IDENT
+    | VOID
+
+value:
+      constant
+    | IDENT
+
+constant:
+      CONSTANT
+      { result = val[0] }
+    | TRUE
+      { result = 1 }
+    | FALSE
+      { result = 0 }
+
+type_specifier:
+      INT
+    | UNSIGNED INT
+    | HYPER
+    | UNSIGNED HYPER
+    | FLOAT
+    | DOUBLE
+    | QUADRUPLE
+    | BOOL
+    | enum_type_spec
+    | struct_type_spec
+    | union_type_spec
+    | IDENT
+
+enum_type_spec:
+      ENUM enum_body
+
+enum_body:
+      '{' enum_list '}' { result = val[1] }
+
+enum_list:
+      IDENT '=' value
+      { result = { val[0] => val[2] } }
+    | enum_list ',' IDENT '=' value
+      { val[0][val[2]] = val[4]; result = val[0]; }
+
+struct_type_spec:
+      STRUCT struct_body
+
+struct_body:
+      '{' declaration_list '}'
+
+declaration_list:
+      declaration ';'
+    | declaration_list declaration ';'
+
+union_type_spec:
+      UNION union_body
+
+union_body:
+      SWITCH '(' declaration ')' '{' switch_body '}'
+
+switch_body:
+      case_list
+    | case_list case_default
+
+case_list:
+      case_spec declaration ';'
+    | case_list case_spec declaration ';'
+
+case_spec:
+      CASE value ':'
+    | case_spec CASE value ':'
+
+case_default:
+      DEFAULT ':' declaration ';'
+
+constant_def:
+      CONST IDENT '=' constant ';'
+
+type_def:
+      TYPEDEF declaration ';'
+      { result = val[1] }
+    | ENUM IDENT enum_body ';'
+      { result = val[2] }
+    | STRUCT IDENT struct_body ';'
+      { result = val[2] }
+    | UNION IDENT union_body ';'
+      { result = val[2] }
+
+definition:
+      type_def
+    | constant_def
+
+end
+
+---- header ----
+
+require 'xdr'
+
+module XDR
+    class ParseError < XDR::Error; end
+end
+
+---- inner ----
+
+# Move code which doesn't require compilation by racc into a separate file
+require 'xdr/parser_support'
+
+# vim: syntax=racc
