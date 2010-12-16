@@ -37,116 +37,158 @@ token TRUE FALSE
 rule
 specification:
       definition
+      { result = [val[0]] }
     | specification definition
+      { result = val[0].push(val[1]) }
 
 declaration:
       type_specifier IDENT
+      { result = [val[0], val[1]] }
     | type_specifier IDENT '[' value ']'
+      { result = [XDR::AST::Array.new(val[0], val[3]), val[1]] }
     | type_specifier IDENT '<' value '>'
+      { result = [XDR::AST::VarArray.new(val[0], val[3]), val[1]] }
     | type_specifier IDENT '<' '>'
+      { result = [XDR::AST::VarArray.new(val[0]), val[1]] }
     | OPAQUE IDENT '[' value ']'
+      { result = [XDR::AST::Opaque.new(val[3]), val[1]] }
     | OPAQUE IDENT '<' value '>'
+      { result = [XDR::AST::VarOpaque.new(val[3]), val[1]] }
     | OPAQUE IDENT '<' '>'
+      { result = [XDR::AST::VarOpaque.new(), val[1]] }
     | STRING IDENT '<' value '>'
+      { result = [XDR::AST::String.new(val[3]), val[1]] }
     | STRING IDENT '<' '>'
+      { result = [XDR::AST::String.new(), val[1]] }
     | type_specifier '*' IDENT
+      { result = [XDR::AST::Optional.new(val[0]), val[2]] }
     | VOID
+      { result = [nil, nil] }
 
 value:
       constant
+      { result = val[0] }
     | IDENT
+      { result = XDR::AST::ConstRef.new(val[0]) }
 
 constant:
       CONSTANT
       { result = val[0] }
     | TRUE
-      { result = 1 }
+      { result = XDR::Token.new(1, val[0].context) }
     | FALSE
-      { result = 0 }
+      { result = XDR::Token.new(0, val[0].context) }
 
 type_specifier:
       INT
+      { result = XDR::AST::Integer.instance() }
     | UNSIGNED INT
+      { result = XDR::AST::UnsignedInteger.instance() }
     | HYPER
+      { result = XDR::AST::Hyper.instance() }
     | UNSIGNED HYPER
+      { result = XDR::AST::UnsignedHyper.instance() }
     | FLOAT
+      { result = XDR::AST::Float.instance() }
     | DOUBLE
+      { result = XDR::AST::Double.instance() }
     | QUADRUPLE
+      { result = XDR::AST::Quadruple.instance() }
     | BOOL
+      { result = XDR::AST::Boolean.instance() }
     | enum_type_spec
+      { result = val[0] }
     | struct_type_spec
+      { result = val[0] }
     | union_type_spec
+      { result = val[0] }
     | IDENT
+      { result = XDR::AST::TypeRef.new(val[0]) }
 
 enum_type_spec:
       ENUM enum_body
+      { result = val[1] }
 
 enum_body:
-      '{' enum_list '}' { result = val[1] }
+      '{' enum_list '}'
+      { result = XDR::AST::Enumeration.new(val[1]) }
 
 enum_list:
       IDENT '=' value
-      { result = { val[0] => val[2] } }
+      { result = [[val[0], val[2]]] }
     | enum_list ',' IDENT '=' value
-      { val[0][val[2]] = val[4]; result = val[0]; }
+      { result = val[0].push([val[2], val[4]]) }
 
 struct_type_spec:
       STRUCT struct_body
+      { result = val[1] }
 
 struct_body:
       '{' declaration_list '}'
+      { result = XDR::AST::Structure.new(val[1]) }
 
 declaration_list:
       declaration ';'
+      { result = [val[0]] }
     | declaration_list declaration ';'
+      { result = val[0].push(val[1]) }
 
 union_type_spec:
       UNION union_body
+      { result = val[1] }
 
 union_body:
       SWITCH '(' declaration ')' '{' switch_body '}'
+      { result = XDR::AST::Union.new(val[2].first, val[5][0], val[5][1]) }
 
 switch_body:
       case_list
+      { result = [val[0], nil] }
     | case_list case_default
+      { result = [val[0], val[1]] }
 
 case_list:
       case_spec declaration ';'
+      { result = [ val[0], val[1] ] }
     | case_list case_spec declaration ';'
+      { result = val[0].push([val[1], val[2]]) }
 
 case_spec:
       CASE value ':'
+      { result = [val[1]] }
     | case_spec CASE value ':'
+      { result = val[0].push(val[2]) }
 
 case_default:
       DEFAULT ':' declaration ';'
+      { result = val[2] }
 
 constant_def:
       CONST IDENT '=' constant ';'
+      { result = XDR::AST::Constant.new(val[1], val[3]) }
 
 type_def:
       TYPEDEF declaration ';'
-      { result = val[1] }
+      { result = XDR::AST::Typedef.new(val[1][1], val[1][0]) }
     | ENUM IDENT enum_body ';'
-      { result = val[2] }
+      { result = XDR::AST::Typedef.new(val[1], val[2]) }
     | STRUCT IDENT struct_body ';'
-      { result = val[2] }
+      { result = XDR::AST::Typedef.new(val[1], val[2]) }
     | UNION IDENT union_body ';'
-      { result = val[2] }
+      { result = XDR::AST::Typedef.new(val[1], val[2]) }
 
 definition:
       type_def
+      { result = val[0] }
     | constant_def
+      { result = val[0] }
 
 end
 
 ---- header ----
 
 require 'xdr'
-
-module XDR
-    class ParseError < XDR::Error; end
-end
+require 'xdr/ast'
 
 ---- inner ----
 

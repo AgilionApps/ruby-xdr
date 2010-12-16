@@ -17,140 +17,178 @@
 
 require 'strscan'
 
-class XDR::Parser
-    def parse()
-        # Set this to true to enable parser debugging
-        @yydebug = false
+require 'xdr'
 
-        begin
-            yyparse(@lexer, :scan)
-        rescue Racc::ParseError => e
-            raise XDR::ParseError, @lexer.errormsg(e.message)
+module XDR
+    class ParseError < XDR::Error
+        def initialise(msg, context)
+            super.new(msg + " at line #{@line}, character #{@char}")
         end
     end
 
-    private
+    class Token
+        attr_reader :value, :context
 
-    def initialize(io)
-        @lexer = XDR::Lexer.new(io)
+        def initialize(value, context)
+            @value = value
+            @context = context
+        end
+
+        def eql?(o)
+            @value.eql?(o)
+        end
+
+        def hash
+            @value.hash
+        end
+
+        def to_s
+            @value.to_s
+        end
+
+        def to_i
+            @value.to_i
+        end
     end
-end
 
-class XDR::Lexer
-    def scan
-        tok = next_token
-        until tok.nil? do
-            if KEYWORDS.has_key?(tok) then
-                sym = KEYWORDS[tok]
-                yield [ sym, sym]
+    class Parser
+        def parse()
+            # Set this to true to enable parser debugging
+            @yydebug = false
 
-            # An identifier is a letter followed by an optional sequence of
-            # letters, digits, or underbar ('_').
-            elsif tok =~ /^[a-zA-Z][a-zA-Z0-9_]*$/ then
-                yield [ :IDENT, tok ]
-
-            # An integer constant in hex, decimal, or octal
-            elsif tok =~ /^-?(0x[0-9a-fA-F]+|[1-9][0-9]*|0[0-7]*)$/ then
-                begin
-                    val = Integer(tok)
-                    yield [ :CONSTANT, val ]
-                rescue ArgumentError => e
-                    raise XDR::ParseError, \
-                        self.errormsg("Invalid constant #{tok}")
-                end
-            
-            elsif tok =~ MATCH_SYMBOL then
-                yield [ tok, tok ]
-
-            else
-                raise XDR::ParseError, \
-                    self.errormsg("Invalid token #{tok}")
+            begin
+                yyparse(@lexer, :scan)
+            rescue Racc::ParseError => e
+                raise ParseError.new(e.message, @lexer.context)
             end
+        end
 
+        private
+
+        def initialize(io)
+            @lexer = Lexer.new(io)
+        end
+    end
+
+    class Lexer
+        def scan
             tok = next_token
-        end
+            until tok.nil? do
+                if KEYWORDS.has_key?(tok) then
+                    sym = KEYWORDS[tok]
+                    yield [ sym, Token.new(sym, self.context) ]
 
-        yield [false, false]
-    end
+                # An identifier is a letter followed by an optional sequence of
+                # letters, digits, or underbar ('_').
+                elsif tok =~ /^[a-zA-Z][a-zA-Z0-9_]*$/ then
+                    yield [ :IDENT, Token.new(tok, self.context) ]
 
-    def errormsg(msg)
-        msg + " at line #{@line}, character #{@char}"
-    end
+                # An integer constant in hex, decimal, or octal
+                elsif tok =~ /^-?(0x[0-9a-fA-F]+|[1-9][0-9]*|0[0-7]*)$/ then
+                    begin
+                        val = Integer(tok)
+                        yield [ :CONSTANT, Token.new(val, self.context) ]
+                    rescue ArgumentError => e
+                        raise ParseError.new("Invalid constant #{tok}",
+                                             self.context)
+                    end
+                
+                elsif tok =~ MATCH_SYMBOL then
+                    yield [ tok, Token.new(tok, self.context) ]
 
-    private
-
-    KEYWORDS = {
-        # Keywords from RFC 4506
-        'bool'      => :BOOL,
-        'case'      => :CASE,
-        'const'     => :CONST,
-        'default'   => :DEFAULT,
-        'double'    => :DOUBLE,
-        'enum'      => :ENUM,
-        'float'     => :FLOAT,
-        'hyper'     => :HYPER,
-        'int'       => :INT,
-        'opaque'    => :OPAQUE,
-        'quadruple' => :QUADRUPLE,
-        'string'    => :STRING,
-        'struct'    => :STRUCT,
-        'switch'    => :SWITCH,
-        'typedef'   => :TYPEDEF,
-        'union'     => :UNION,
-        'unsigned'  => :UNSIGNED,
-        'void'      => :VOID,
-
-        # Keywords from RFC 5531, reserved but not used
-        'program'   => :PROGRAM,
-        'version'   => :VERSION,
-
-        # Keywords implicit in definition of Boolean
-        'FALSE'     => :FALSE,
-        'TRUE'      => :TRUE
-    }
-
-    SYMBOLS = '\[\]<>*{}=,;():'
-    MATCH_SYMBOL = /[#{SYMBOLS}]/
-    SCAN_SYMBOLS = /[#{SYMBOLS}]|[^#{SYMBOLS}]+/
-
-    def initialize(io)
-        @io = io
-        @line = 0
-        @char = 0
-        @scanner = nil
-        @toks = []
-        @lasttoklen = 0
-    end
-
-    def next_token
-        if @toks.length > 0 then
-            @char += @lasttoklen
-            @lasttoklen = @toks.first.length
-            return @toks.shift
-        end
-
-        tok = nil
-        while tok.nil? do
-            if @scanner.nil? || @scanner.eos? then
-                begin
-                    buf = @io.readline
-                    @scanner = StringScanner.new(buf)
-                    @line += 1
-                rescue EOFError
-                    return nil
+                else
+                    raise ParseError.new("Invalid token #{tok}", self.context)
                 end
+
+                tok = next_token
             end
 
-            # Skip whitespace
-            @scanner.scan(/\s*/)
-            @char = @scanner.pos 
-            tok = @scanner.scan(/\S+/)
+            yield [false, false]
         end
 
-        # Symbols don't have to be separated by whitespace. Break the token down
-        # into individual symbols, and the characters in between them
-        @toks = tok.scan(SCAN_SYMBOLS)
-        @lasttoklen = @toks.first.length
-        @toks.shift
+        def context
+            [ @line, @char ]
+        end
+
+        def errormsg(msg)
+            msg + " at line #{@line}, character #{@char}"
+        end
+
+        private
+
+        KEYWORDS = {
+            # Keywords from RFC 4506
+            'bool'      => :BOOL,
+            'case'      => :CASE,
+            'const'     => :CONST,
+            'default'   => :DEFAULT,
+            'double'    => :DOUBLE,
+            'enum'      => :ENUM,
+            'float'     => :FLOAT,
+            'hyper'     => :HYPER,
+            'int'       => :INT,
+            'opaque'    => :OPAQUE,
+            'quadruple' => :QUADRUPLE,
+            'string'    => :STRING,
+            'struct'    => :STRUCT,
+            'switch'    => :SWITCH,
+            'typedef'   => :TYPEDEF,
+            'union'     => :UNION,
+            'unsigned'  => :UNSIGNED,
+            'void'      => :VOID,
+
+            # Keywords from RFC 5531, reserved but not used
+            'program'   => :PROGRAM,
+            'version'   => :VERSION,
+
+            # Keywords implicit in definition of Boolean
+            'FALSE'     => :FALSE,
+            'TRUE'      => :TRUE
+        }
+
+        SYMBOLS = '\[\]<>*{}=,;():'
+        MATCH_SYMBOL = /[#{SYMBOLS}]/
+        SCAN_SYMBOLS = /[#{SYMBOLS}]|[^#{SYMBOLS}]+/
+
+        def initialize(io)
+            @io = io
+            @line = 0
+            @char = 0
+            @scanner = nil
+            @toks = []
+            @lasttoklen = 0
+        end
+
+        def next_token
+            if @toks.length > 0 then
+                @char += @lasttoklen
+                @lasttoklen = @toks.first.length
+                return @toks.shift
+            end
+
+            tok = nil
+            while tok.nil? do
+                if @scanner.nil? || @scanner.eos? then
+                    begin
+                        buf = @io.readline
+                        @scanner = StringScanner.new(buf)
+                        @line += 1
+                    rescue EOFError
+                        return nil
+                    end
+                end
+
+                # Skip whitespace
+                @scanner.scan(/\s*/)
+                @char = @scanner.pos 
+                tok = @scanner.scan(/\S+/)
+            end
+
+            # Symbols don't have to be separated by whitespace. Break the token down
+            # into individual symbols, and the characters in between them
+            @toks = tok.scan(SCAN_SYMBOLS)
+            @lasttoklen = @toks.first.length
+            @toks.shift
+        end
     end
 end
