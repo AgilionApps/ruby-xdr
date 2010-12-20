@@ -21,8 +21,8 @@ require 'xdr'
 
 module XDR
     class ParseError < XDR::Error
-        def initialise(msg, context)
-            super.new(msg + " at line #{@line}, character #{@char}")
+        def initialize(msg, context)
+            super("#{msg}: line #{context[0]}, character #{context[1]}")
         end
     end
 
