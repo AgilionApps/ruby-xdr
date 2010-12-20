@@ -18,124 +18,145 @@
 require 'singleton'
 
 module XDR::AST
+    class Type
+        attr_reader :context
+
+        def initialize(context)
+            @context = context
+        end
+    end
 
     # Basic types
-    class Integer; include Singleton; end
-    class UnsignedInteger; include Singleton; end
-    class Boolean; include Singleton; end
-    class Hyper; include Singleton; end
-    class UnsignedHyper; include Singleton; end
-    class Float; include Singleton; end
-    class Double; include Singleton; end
-    class Quadruple; include Singleton; end
-    class Void; include Singleton; end
+    class Integer < Type; end
+    class UnsignedInteger < Type; end
+    class Boolean < Type; end
+    class Hyper < Type; end
+    class UnsignedHyper < Type; end
+    class Float < Type; end
+    class Double < Type; end
+    class Quadruple < Type; end
+    class Void < Type; end
 
-    class Enumeration
+    # Complex types
+    class Enumeration < Type
         attr_reader :map
 
-        def initialize(map)
+        def initialize(context, map)
+            super(context)
             @map = map
         end
     end
 
-    class Opaque
+    class Opaque < Type
         attr_reader :length
 
-        def initialize(length)
+        def initialize(context, length)
+            super(context)
             @length = length
         end
     end
 
-    class VarOpaque
+    class VarOpaque < Type
         attr_reader :max
 
-        def initialize(max = nil)
+        def initialize(context, max = nil)
+            super(context)
             @max = max
         end
     end
 
-    class String
+    class String < Type
         attr_reader :max
 
-        def initialize(max = nil)
+        def initialize(context, max = nil)
+            super(context)
             @max = max
         end
     end
 
-    class Array
+    class Array < Type
         attr_reader :type, :length
 
-        def initialize(type, length)
+        def initialize(context, type, length)
+            super(context)
             @type = type
             @length = length
         end
     end
 
-    class VarArray
+    class VarArray < Type
         attr_reader :type, :max
 
-        def initialize(type, max = nil)
+        def initialize(context, type, max = nil)
+            super(context)
             @type = type
             @max = max
         end
     end
 
-    class Structure
+    class Structure < Type
         attr_reader :fields
 
-        def initialize(fields)
+        def initialize(context, fields)
+            super(context)
             @fields = fields
         end
     end
 
-    class Union
+    class Union < Type
         attr_reader :dtype, :cases, :default
 
-        def initialize(dtype, cases, default = nil)
+        def initialize(context, dtype, cases, default = nil)
+            super(context)
             @disc = dtype
             @cases = cases
             @default = default
         end
     end
 
-    class Optional
+    class Optional < Type
         attr_reader :type
 
-        def initialize(type)
+        def initialize(context, type)
+            super(context)
             @type = type
         end
     end
 
-    class Constant
+    class Constant < Type
         attr_reader :name, :value
 
-        def initialize(name, value)
+        def initialize(context, parser, name, value)
+            super(context)
             @name = name
             @value = value
         end
     end
 
-    class Typedef
+    class ConstRef < Type
+        attr_reader :name
+
+        def initialize(context, name)
+            super(context)
+            @name = name
+        end
+    end
+
+    class Typedef < Type
         attr_reader :name, :type
 
-        def initialize(name, type)
+        def initialize(context, parser, name, type)
+            super(context)
             @name = name
             @type = type
         end
     end
 
-    class TypeRef
+    class TypeRef < Type
         attr_reader :name
 
-        def initialize(name)
-            @name = name
-        end
-    end
-
-    class ConstRef
-        attr_reader :name
-
-        def initialize(name)
+        def initialize(context, name)
+            super(context)
             @name = name
         end
     end
