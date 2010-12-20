@@ -7,7 +7,7 @@ require 'xdr/parser'
 class ParserTest < Test::Unit::TestCase
     # A set of definitions intended to test every branch of the BNF at least
     # once
-    SYNTAX_TESTS = [
+    SUCCESS_TESTS = [
         #
         'typedef int a;
          typedef unsigned int b;',
@@ -89,10 +89,34 @@ class ParserTest < Test::Unit::TestCase
           };'
     ]
 
-    def test_syntax
-        SYNTAX_TESTS.each { |i|
+    FAILURE_TESTS = [
+        #
+        'const a = 1;
+         const b = 2;
+         const a = 3;',
+
+        #
+        'typedef int a;
+         enum { a = 1, b = 2 } b;
+         struct {
+             int a;
+             int b;
+         } a;'
+    ]
+
+    def test_success
+        SUCCESS_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_nothing_raised do
+                p.parse
+            end
+        }
+    end
+
+    def test_failure
+        FAILURE_TESTS.each { |i|
+            p = XDR::Parser.new(StringIO.new(i))
+            assert_raise(XDR::ParseError) do
                 p.parse
             end
         }

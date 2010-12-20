@@ -130,6 +130,8 @@ module XDR::AST
             super(context)
             @name = name
             @value = value
+
+            parser.add_constant(name.value, self)
         end
     end
 
@@ -149,6 +151,10 @@ module XDR::AST
             super(context)
             @name = name
             @type = type
+
+            # 'typedef void;' is valid, if pointless, syntax
+            # Don't bother doing anything with it
+            parser.add_typedef(name.value, self) unless name.nil?
         end
     end
 
