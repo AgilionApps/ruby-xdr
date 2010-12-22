@@ -121,11 +121,11 @@ module XDR::AST
     end
 
     class Union < Type
-        attr_reader :dtype, :cases, :default
+        attr_reader :switch, :cases, :default
 
-        def initialize(context, dtype, cases, default = nil)
+        def initialize(context, switch, cases, default = nil)
             super(context)
-            @disc = dtype
+            @switch = switch
             @cases = cases
             @default = default
         end

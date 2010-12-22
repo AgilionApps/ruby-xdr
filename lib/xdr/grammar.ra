@@ -149,7 +149,7 @@ union_type_spec:
 
 union_body:
       SWITCH '(' declaration ')' '{' switch_body '}'
-      { result = [val[2].first, val[5][0], val[5][1]] }
+      { result = [val[2], val[5][0], val[5][1]] }
 
 switch_body:
       case_list
