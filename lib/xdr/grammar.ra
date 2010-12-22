@@ -114,11 +114,19 @@ enum_body:
       '{' enum_list '}'
       { result = val[1] }
 
-enum_list:
+# This doesn't seem to be allowed by the RFC, but rpcgen (at least on my Fedora
+# system) allows enumerations without explicit values
+enum_value:
       IDENT '=' value
-      { result = [[val[0], val[2]]] }
-    | enum_list ',' IDENT '=' value
-      { result = val[0].push([val[2], val[4]]) }
+      { result = [val[0], val[2]] }
+    | IDENT
+      { result = [val[0], nil] }
+
+enum_list:
+      enum_value
+      { result = [val[0]] }
+    | enum_list ',' enum_value
+      { result = val[0].push(val[2]) }
 
 struct_type_spec:
       STRUCT struct_body

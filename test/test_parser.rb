@@ -48,6 +48,15 @@ class ParserTest < Test::Unit::TestCase
          };',
 
         #
+        'enum foo {
+            A = 1,
+            B,
+            C = 5,
+            D,
+            LAST
+         };',
+
+        #
         'const myconst = 0xF;
 
          enum foo {
