@@ -98,19 +98,25 @@ class ParserTest < Test::Unit::TestCase
           };'
     ]
 
-    FAILURE_TESTS = [
+    DUP_CONSTANT_TESTS = [
         #
         'const a = 1;
          const b = 2;
          const a = 3;',
 
         #
+        'const a = 1;
+         enum b { a = 1, b = 2};',
+    ]
+
+    DUP_TYPEDEF_TESTS = [
+        #
         'typedef int a;
-         enum { a = 1, b = 2 } b;
-         struct {
+         enum b { a = 1, b = 2 };
+         struct a {
              int a;
              int b;
-         } a;'
+         };'
     ]
 
     def test_success
@@ -122,10 +128,19 @@ class ParserTest < Test::Unit::TestCase
         }
     end
 
-    def test_failure
-        FAILURE_TESTS.each { |i|
+    def test_duplicate_constant
+        DUP_CONSTANT_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
-            assert_raise(XDR::ParseError) do
+            assert_raise(XDR::DuplicateConstantError) do
+                p.parse
+            end
+        }
+    end
+
+    def test_duplicate_typedef
+        DUP_TYPEDEF_TESTS.each { |i|
+            p = XDR::Parser.new(StringIO.new(i))
+            assert_raise(XDR::DuplicateTypedefError) do
                 p.parse
             end
         }

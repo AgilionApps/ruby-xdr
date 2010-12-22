@@ -26,6 +26,9 @@ module XDR
         end
     end
 
+    class DuplicateConstantError < ParseError; end
+    class DuplicateTypedefError < ParseError; end
+
     class Token
         attr_reader :value, :context
 
@@ -66,10 +69,10 @@ module XDR
         def add_constant(name, node)
             if (@constants.has_key?(name)) then
                 prev = @constants[name]
-                raise ParseError.new("Duplicate definition of constant " +
-                                     "#{name} at line #{node.context[0]}, " +
-                                     "char #{node.context[1]}",
-                                     prev.name.context)
+                raise DuplicateConstantError.new("Duplicate definition of " +
+                    "constant #{name} at line #{node.context[0]}, " +
+                    "char #{node.context[1]}",
+                    prev.name.context)
             end
             @constants[name] = node
         end
@@ -77,10 +80,9 @@ module XDR
         def add_typedef(name, node)
             if (@typedefs.has_key?(name)) then
                 prev = @typedefs[name]
-                raise ParseError.new("Duplicate typedef #{name} at line " +
-                                     "#{node.context[0]}, char " +
-                                     "#{node.context[1]}",
-                                     prev.name.context)
+                raise DuplicateTypedefError.new("Duplicate typedef #{name} " +
+                    "at line #{node.context[0]}, char #{node.context[1]}",
+                    prev.name.context)
             end
             @typedefs[name] = node
         end
