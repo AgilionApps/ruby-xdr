@@ -55,15 +55,25 @@ module XDR
     end
 
     class Parser
-        def parse()
-            # Set this to true to enable parser debugging
-            @yydebug = false
+        def load(modname)
+            p = Object
+            modname.split(/::/).each { |name|
+                m = nil
+                begin
+                    m = p.const_get(name)
+                rescue NameError
+                    m = Module.new
+                    p.const_set(name, m)
+                end
 
-            begin
-                yyparse(@lexer, :scan)
-            rescue Racc::ParseError => e
-                raise ParseError.new(e.message, @lexer.context)
-            end
+                p = m
+            }
+
+            ast = parse()
+
+            ast.each { |i|
+                i.generate(p, self)
+            }
         end
 
         def add_constant(name, node)
@@ -93,6 +103,17 @@ module XDR
             @lexer = Lexer.new(io)
             @constants = {}
             @typedefs = {}
+        end
+
+        def parse()
+            # Set this to true to enable parser debugging
+            @yydebug = false
+
+            begin
+                return yyparse(@lexer, :scan)
+            rescue Racc::ParseError => e
+                raise ParseError.new(e.message, @lexer.context)
+            end
         end
     end
 

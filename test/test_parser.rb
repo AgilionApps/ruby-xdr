@@ -123,7 +123,7 @@ class ParserTest < Test::Unit::TestCase
         SUCCESS_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_nothing_raised do
-                p.parse
+                p.load('Mod')
             end
         }
     end
@@ -132,7 +132,7 @@ class ParserTest < Test::Unit::TestCase
         DUP_CONSTANT_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_raise(XDR::DuplicateConstantError) do
-                p.parse
+                p.load('Mod')
             end
         }
     end
@@ -141,7 +141,7 @@ class ParserTest < Test::Unit::TestCase
         DUP_TYPEDEF_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_raise(XDR::DuplicateTypedefError) do
-                p.parse
+                p.load('Mod')
             end
         }
     end

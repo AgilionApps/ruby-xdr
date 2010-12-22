@@ -22,6 +22,8 @@ module XDR::AST
         def initialize(context)
             @context = context
         end
+
+        def generate(mod, parser); end
     end
 
     # Basic types
