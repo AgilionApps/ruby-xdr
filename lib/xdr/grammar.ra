@@ -74,7 +74,7 @@ value:
     | FALSE
       { result = XDR::Token.new(0, val[0].context) }
     | IDENT
-      { result = XDR::AST::ConstRef.new(val[0].context, val[0]) }
+      { result = XDR::AST::ConstRef.new(val[0].context, self, val[0]) }
 
 type_specifier:
       INT

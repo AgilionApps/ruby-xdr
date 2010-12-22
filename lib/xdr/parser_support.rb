@@ -28,6 +28,7 @@ module XDR
 
     class DuplicateConstantError < ParseError; end
     class DuplicateTypedefError < ParseError; end
+    class ConstantDefinitionLoop < ParseError; end
 
     class Token
         attr_reader :value, :context
@@ -85,6 +86,14 @@ module XDR
                     prev.name.context)
             end
             @constants[name] = node
+        end
+
+        def lookup_constant(name, visited)
+            raise NonExistentConstantError.new("Use of undefined " +
+                "constant #{name.name}", name.context) \
+                unless @constants.has_key?(name.value)
+
+            @constants[name.value].value(visited)
         end
 
         def add_typedef(name, node)

@@ -15,6 +15,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+require 'set'
+
 module XDR::AST
     class Type
         attr_reader :context
@@ -143,7 +145,7 @@ module XDR::AST
     end
 
     class Constant < Type
-        attr_reader :name, :value
+        attr_reader :name
 
         def initialize(context, parser, name, value)
             super(context)
@@ -152,14 +154,36 @@ module XDR::AST
 
             parser.add_constant(name.value, self)
         end
+
+        def generate(mod, parser)
+            mod.const_set(name.value.capitalize(), @value.value)
+        end
+
+        def value(visited = nil)
+            if @value.is_a?(XDR::Token) then
+                @value.value
+            else
+                @value.value(visited)
+            end
+        end
     end
 
     class ConstRef < Type
         attr_reader :name
 
-        def initialize(context, name)
+        def initialize(context, parser, name)
             super(context)
+            @parser = parser
             @name = name
+        end
+
+        def value(visited = Set.new())
+            raise XDR::ConstantDefinitionLoop.new("Loop detected in " +
+                "definition of constant #{@name.value}", @name.context) \
+                if visited.include?(self)
+            visited.add(self)
+
+            @parser.lookup_constant(name, visited)
         end
     end
 
