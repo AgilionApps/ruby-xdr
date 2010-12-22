@@ -108,7 +108,7 @@ type_specifier:
 
 enum_type_spec:
       ENUM enum_body
-      { result = XDR::AST::Enumeration.new(val[0].context, val[1]) }
+      { result = XDR::AST::Enumeration.new(val[0].context, self, val[1]) }
 
 enum_body:
       '{' enum_list '}'
@@ -182,7 +182,7 @@ type_def:
       { result = XDR::AST::Typedef.new(val[0].context, self,
                                        val[1][1], val[1][0]) }
     | ENUM IDENT enum_body ';'
-      { enum = XDR::AST::Enumeration.new(val[0].context, val[2])
+      { enum = XDR::AST::Enumeration.new(val[0].context, self, val[2])
         result = XDR::AST::Typedef.new(val[0].context, self, val[1], enum) }
     | STRUCT IDENT struct_body ';'
       { struct = XDR::AST::Structure.new(val[0].context, val[2])

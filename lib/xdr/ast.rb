@@ -37,11 +37,30 @@ module XDR::AST
 
     # Complex types
     class Enumeration < Type
-        attr_reader :map
+        attr_reader :values
 
-        def initialize(context, map)
+        def initialize(context, parser, values)
             super(context)
-            @map = map
+            @values = []
+            values.each { |i|
+                name = i[0]
+                value = i[1]
+
+                @values.push(EnumerationConstant.new(name.context, parser,
+                                                     name, value))
+            }
+        end
+    end
+
+    class EnumerationConstant < Type
+        attr_reader :name, :value
+
+        def initialize(context, parser, name, value)
+            super(context)
+            @name = name
+            @value = value
+
+            parser.add_constant(name.value, self)
         end
     end
 
