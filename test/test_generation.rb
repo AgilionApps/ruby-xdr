@@ -79,4 +79,28 @@ TEST
             p.load('ParserTest::Test_constant_loop')
         end
     end
+
+    def test_typedef
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+enum a { A, B };
+typedef a b;
+TEST
+
+        assert_nothing_raised do
+            p.load('ParserTest::Test_typedef0')
+
+            assert_equal(ParserTest::Test_typedef0::A::A, 0);
+            assert_equal(ParserTest::Test_typedef0::B::A, 0);
+        end
+
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef a b;
+typedef b c;
+typedef c a;
+TEST
+
+        assert_raise(XDR::TypeDefinitionLoop) do
+            p.load('ParserTest::Test_typedef1')
+        end
+    end
 end

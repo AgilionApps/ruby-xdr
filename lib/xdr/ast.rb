@@ -25,7 +25,7 @@ module XDR::AST
             @context = context
         end
 
-        def generate(mod, parser); end
+        def generate(mod, parser, visited = nil); end
     end
 
     # Basic types
@@ -56,11 +56,14 @@ module XDR::AST
                 prev = c
                 @values.push(c)
             }
+            @klass = nil
         end
 
         def generate(mod, parser, visited = nil)
-            c = Class.new()
-            c.class_eval do
+            return @klass unless @klass.nil?
+
+            @klass = Class.new()
+            @klass.class_eval do
                 class << self; attr_accessor :values; end
 
                 def initialize(value = nil)
@@ -72,15 +75,15 @@ module XDR::AST
                     end
                 end
             end
-            c.values = Set.new()
+            @klass.values = Set.new()
             @values.each { |i|
                 val = i.value
 
-                c.const_set(i.name.value, val)
-                c.values.add(val)
+                @klass.const_set(i.name.value, val)
+                @klass.values.add(val)
             }
 
-            c
+            @klass
         end
     end
 
@@ -207,7 +210,7 @@ module XDR::AST
             parser.add_constant(name.value, self)
         end
 
-        def generate(mod, parser)
+        def generate(mod, parser, visited = nil)
             mod.const_set(name.value.capitalize(), @value.value)
         end
 
@@ -246,17 +249,21 @@ module XDR::AST
             super(context)
             @name = name
             @type = type
+            @klass = nil
 
             # 'typedef void;' is valid, if pointless, syntax
             # Don't bother doing anything with it
             parser.add_type(name.value, self) unless name.nil?
         end
 
-        def generate(mod, parser, visited = nil)
-            type = @type.generate(mod, parser)
+        def generate(mod, parser, visited = Set.new())
+            return @klass unless @klass.nil?
+
+            @klass = @type.generate(mod, parser, visited)
             # XXX type can only be nil because the implementation is not yet
             # complete. Remove this once the implementation is complete.
-            mod.const_set(@name.value.capitalize(), type) unless type.nil?
+            mod.const_set(@name.value.capitalize(), @klass) unless @klass.nil?
+            @klass
         end
     end
 
@@ -266,6 +273,19 @@ module XDR::AST
         def initialize(context, name)
             super(context)
             @name = name
+            @type = nil
+        end
+
+        def generate(mod, parser, visited = Set.new())
+            return @type unless @type.nil?
+
+            raise XDR::TypeDefinitionLoop.new("Loop detected in " +
+                "definition of type #{@name.value}", @name.context) \
+                if visited.include?(self)
+            visited.add(self)
+
+            @type = parser.lookup_type(@name).generate(mod, parser, visited)
+            @type
         end
     end
 end
