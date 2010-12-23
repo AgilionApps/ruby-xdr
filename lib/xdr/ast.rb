@@ -197,7 +197,14 @@ module XDR::AST
 
             # 'typedef void;' is valid, if pointless, syntax
             # Don't bother doing anything with it
-            parser.add_typedef(name.value, self) unless name.nil?
+            parser.add_type(name.value, self) unless name.nil?
+        end
+
+        def generate(mod, parser, visited = nil)
+            type = @type.generate(mod, parser)
+            # XXX type can only be nil because the implementation is not yet
+            # complete. Remove this once the implementation is complete.
+            mod.const_set(@name.value.capitalize(), type) unless type.nil?
         end
     end
 

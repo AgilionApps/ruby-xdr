@@ -96,7 +96,7 @@ module XDR
             @constants[name.value].value(visited)
         end
 
-        def add_typedef(name, node)
+        def add_type(name, node)
             if (@typedefs.has_key?(name)) then
                 prev = @typedefs[name]
                 raise DuplicateTypedefError.new("Duplicate typedef #{name} " +
