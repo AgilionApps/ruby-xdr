@@ -240,8 +240,8 @@ module XDR
                 tok = @scanner.scan(/\S+/)
             end
 
-            # Symbols don't have to be separated by whitespace. Break the token down
-            # into individual symbols, and the characters in between them
+            # Symbols don't have to be separated by whitespace. Break the token
+            # down into individual symbols, and the characters in between them
             @toks = tok.scan(SCAN_SYMBOLS)
             @lasttoklen = @toks.first.length
             @toks.shift
