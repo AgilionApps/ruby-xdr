@@ -11,10 +11,10 @@ const b = a;
 const a = 1;
 TEST
 
-        p.load('Mod::SubMod')
+        p.load('ParserTest::Test_constant')
 
-        assert_equal(Mod::SubMod::A, 1)
-        assert_equal(Mod::SubMod::B, 1)
+        assert_equal(ParserTest::Test_constant::A, 1)
+        assert_equal(ParserTest::Test_constant::B, 1)
     end
 
     def test_constant_loop
@@ -25,7 +25,7 @@ const c = a;
 TEST
 
         assert_raise(XDR::ConstantDefinitionLoop) do
-            p.load('Mod::SubMod')
+            p.load('ParserTest::Test_constant_loop')
         end
     end
 end

@@ -120,29 +120,35 @@ class ParserTest < Test::Unit::TestCase
     ]
 
     def test_success
+        n = 0
         SUCCESS_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_nothing_raised do
-                p.load('Mod')
+                p.load("ParserTest::Test_success#{n}")
             end
+            n += 1
         }
     end
 
     def test_duplicate_constant
+        n = 0
         DUP_CONSTANT_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_raise(XDR::DuplicateConstantError) do
-                p.load('Mod')
+                p.load("ParserTest::Test_duplicate_constant#{n}")
             end
+            n += 1
         }
     end
 
     def test_duplicate_typedef
+        n = 0
         DUP_TYPEDEF_TESTS.each { |i|
             p = XDR::Parser.new(StringIO.new(i))
             assert_raise(XDR::DuplicateTypedefError) do
-                p.load('Mod')
+                p.load("ParserTest::Test_duplicate_typedef#{n}")
             end
+            n += 1
         }
     end
 end
