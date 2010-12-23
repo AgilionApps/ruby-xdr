@@ -46,25 +46,77 @@ module XDR::AST
         def initialize(context, parser, values)
             super(context)
             @values = []
+            prev = nil
             values.each { |i|
                 name = i[0]
                 value = i[1]
 
-                @values.push(EnumerationConstant.new(name.context, parser,
-                                                     name, value))
+                c = EnumerationConstant.new(name.context, parser,
+                                            prev, name, value)
+                prev = c
+                @values.push(c)
             }
+        end
+
+        def generate(mod, parser, visited = nil)
+            c = Class.new()
+            c.class_eval do
+                class << self; attr_accessor :values; end
+
+                def initialize(value = nil)
+                    @value = value
+                    unless value.nil?
+                        raise ArgumentError, "#{value} is not a permitted " +
+                            "value for enumeration" \
+                            unless self.class.values.include?(value)
+                    end
+                end
+            end
+            c.values = Set.new()
+            @values.each { |i|
+                val = i.value
+
+                c.const_set(i.name.value, val)
+                c.values.add(val)
+            }
+
+            c
         end
     end
 
-    class EnumerationConstant < Type
-        attr_reader :name, :value
 
-        def initialize(context, parser, name, value)
+    class EnumerationConstant < Type
+        attr_reader :name
+
+        def initialize(context, parser, prev, name, value)
             super(context)
+            @prev = prev
             @name = name
             @value = value
 
             parser.add_constant(name.value, self)
+        end
+
+        def value(visited = Set.new())
+            raise XDR::ConstantDefinitionLoop.new("Loop detected in " +
+                "definition of constant #{@name.value}", @name.context) \
+                if visited.include?(self)
+            visited.add(self)
+
+            if @value.nil? then
+                # No explicit value. 1 greater than the previous value.
+                val = @prev.nil? ? 0 : @prev.value(visited) + 1
+
+                # Cache the value
+                @value = XDR::Token.new(val, nil)
+                return val
+            end
+
+            if @value.is_a?(XDR::Token) then
+                return @value.value
+            else
+                return @value.value(visited)
+            end
         end
     end
 
