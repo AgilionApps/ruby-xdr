@@ -230,15 +230,19 @@ module XDR::AST
             super(context)
             @parser = parser
             @name = name
+            @value = nil
         end
 
         def value(visited = Set.new())
+            return @value unless @value.nil?
+
             raise XDR::ConstantDefinitionLoop.new("Loop detected in " +
                 "definition of constant #{@name.value}", @name.context) \
                 if visited.include?(self)
             visited.add(self)
 
-            @parser.lookup_constant(name, visited)
+            @value = @parser.lookup_constant(name).value(visited)
+            @value
         end
     end
 

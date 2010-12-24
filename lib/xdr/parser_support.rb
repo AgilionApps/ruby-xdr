@@ -89,12 +89,12 @@ module XDR
             @constants[name] = node
         end
 
-        def lookup_constant(name, visited)
+        def lookup_constant(name)
             raise NonExistentConstantError.new("Use of undefined " +
                 "constant #{name.name}", name.context) \
                 unless @constants.has_key?(name.value)
 
-            @constants[name.value].value(visited)
+            @constants[name.value]
         end
 
         def add_type(name, node)
