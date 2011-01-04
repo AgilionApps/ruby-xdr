@@ -45,7 +45,7 @@ module XDR
             when 1
                 true
             else
-                raise ArgumentError "Invalid value for bool: #{val}"
+                raise ArgumentError, "Invalid value for bool: #{val}"
             end
         end
 
@@ -157,9 +157,9 @@ module XDR
 
         # A signed 32-bit integer, big-endian
         def int32(val)
-            raise ArgumentError "int32() requires an Integer argument" \
+            raise ArgumentError, "int32() requires an Integer argument" \
                 unless val.is_a?(Integer)
-            raise RangeError "argument to int32() must be in the range " +
+            raise RangeError, "argument to int32() must be in the range " +
                              "-2**31 <= arg <= 2**31-1" \
                 unless val >= -2**31 && val <= 3**31-1
 
@@ -172,9 +172,9 @@ module XDR
 
         # An unsigned 32-bit integer, big-endian
         def uint32(val)
-            raise ArgumentError "uint32() requires an Integer argument" \
+            raise ArgumentError, "uint32() requires an Integer argument" \
                 unless val.is_a?(Integer)
-            raise RangeError "argument to uint32() must be in the range " +
+            raise RangeError, "argument to uint32() must be in the range " +
                              "0 <= arg <= 2**32-1" \
                 unless val >= 0 && val <= 2**32-1
 
@@ -185,7 +185,7 @@ module XDR
 
         # A boolean value, encoded as a signed integer
         def bool(val)
-            raise ArgumentError "bool() requires a boolean argument" \
+            raise ArgumentError, "bool() requires a boolean argument" \
                 unless val == true || val == false
 
             self.int(val ? 1 : 0)
@@ -196,9 +196,9 @@ module XDR
 
         # A signed 64-bit integer, big-endian
         def int64(val)
-            raise ArgumentError "int64() requires an Integer argument" \
+            raise ArgumentError, "int64() requires an Integer argument" \
                 unless val.is_a?(Integer)
-            raise RangeError "argument to int64() must be in the range " +
+            raise RangeError, "argument to int64() must be in the range " +
                              "-2**63 <= arg <= 2**63-1" \
                 unless val >= -2**63 && val <= 2**63-1
 
@@ -210,9 +210,9 @@ module XDR
 
         # An unsigned 64-bit integer, big-endian
         def uint64(val)
-            raise ArgumentError "uint64() requires an Integer argument" \
+            raise ArgumentError, "uint64() requires an Integer argument" \
                 unless val.is_a?(Integer)
-            raise RangeError "argument to uint64() must be in the range " +
+            raise RangeError, "argument to uint64() must be in the range " +
                              "0 <= arg <= 2**64-1" \
                 unless val >= 0 && val <= 2**64-1
 
@@ -226,7 +226,7 @@ module XDR
 
         # A 32-bit float, big-endian
         def float32(val)
-            raise ArgumentError "float32() requires a Numeric argument" \
+            raise ArgumentError, "float32() requires a Numeric argument" \
                 unless val.is_a?(Numeric)
 
             @io.write([val].pack("g"))
@@ -236,7 +236,7 @@ module XDR
 
         # a 64-bit float, big-endian
         def float64(val)
-            raise ArgumentError "float64() requires a Numeric argument" \
+            raise ArgumentError, "float64() requires a Numeric argument" \
                 unless val.is_a?(Numeric)
 
             @io.write([val].pack("G"))
@@ -266,7 +266,7 @@ module XDR
         def var_bytes(val)
             val = val.to_s
 
-            raise ArgumentError "var_bytes() cannot encode data longer " +
+            raise ArgumentError, "var_bytes() cannot encode data longer " +
                                 "than 2**32-1 bytes" \
                 unless val.length <= 2**32-1
 
@@ -279,7 +279,7 @@ module XDR
         def string(val)
             val = val.to_s
 
-            raise ArgumentError "string() cannot encode a string longer " +
+            raise ArgumentError, "string() cannot encode a string longer " +
                                 "than 2**32-1 bytes" \
                 unless val.length <= 2**32-1
 
