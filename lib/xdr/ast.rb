@@ -21,22 +21,93 @@ module XDR::AST
     class Type
         attr_reader :context
 
-        def initialize(context)
+        def initialize(context, xdrmethod = nil)
             @context = context
+            @xdrmethod = xdrmethod
         end
 
-        def generate(mod, parser, visited = nil); end
+        def generate(mod, parser, visited = nil);
+            # XXX: Only required because implementation is incomplete
+            return nil if @xdrmethod.nil?
+
+            raise RuntimeError, "Attempt to use default generator for " +
+                "#{self.class.name} without being passed xdrmethod" \
+                if @xdrmethod.nil?
+
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Type)
+            @klass.class_eval do
+                class << self; attr_accessor :xdrmethod; end
+
+                attr_accessor :value
+
+                def initialize(value = nil)
+                    self.value = value unless value.nil?
+                end
+
+                def read(xdr)
+                    self.value = xdr.send(self.class.xdrmethod)
+                end
+
+                def write(xdr)
+                    xdr.send(self.class.xdrmethod, @value)
+                end
+            end
+            @klass.xdrmethod = @xdrmethod
+            @klass
+        end
     end
 
     # Basic types
-    class Integer < Type; end
-    class UnsignedInteger < Type; end
-    class Boolean < Type; end
-    class Hyper < Type; end
-    class UnsignedHyper < Type; end
-    class Float < Type; end
-    class Double < Type; end
-    class Quadruple < Type; end
+    class Integer < Type;
+        def initialize(context)
+            super(context, :int32)
+        end
+    end
+
+    class UnsignedInteger < Type;
+        def initialize(context)
+            super(context, :uint32)
+        end
+    end
+
+    class Boolean < Type;
+        def initialize(context)
+            super(context, :bool)
+        end
+    end
+
+    class Hyper < Type;
+        def initialize(context)
+            super(context, :int64)
+        end
+    end
+
+    class UnsignedHyper < Type;
+        def initialize(context)
+            super(context, :uint64)
+        end
+    end
+
+    class Float < Type;
+        def initialize(context)
+            super(context, :float32)
+        end
+    end
+
+    class Double < Type;
+        def initialize(context)
+            super(context, :float64)
+        end
+    end
+
+    class Quadruple < Type;
+        def initialize(context)
+            super(context, :float128)
+        end
+    end
+
     class Void < Type; end
 
     # Complex types
