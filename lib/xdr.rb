@@ -114,7 +114,11 @@ module XDR
         end
 
         def read(type)
+            # For syntactic niceness, instantiate a new object of class 'type'
+            # if type is a class
+            type = type.new() if type.is_a?(Class)
             type.read(self)
+            type
         end
 
         private
