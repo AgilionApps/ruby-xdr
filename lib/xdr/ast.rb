@@ -53,6 +53,18 @@ module XDR::AST
                 def write(xdr)
                     xdr.send(self.class.xdrmethod, @value)
                 end
+
+                def to_s
+                    @value.to_s
+                end
+
+                def to_i
+                    @value.to_i
+                end
+
+                def coerce(o)
+                    @value.coerce(o)
+                end
             end
             @klass.xdrmethod = @xdrmethod
             @klass
@@ -157,6 +169,18 @@ module XDR::AST
                         unless self.class.values.include?(value)
                     @value = value
                 end
+
+                def to_s
+                    @value.to_s
+                end
+
+                def to_i
+                    @value.to_i
+                end
+
+                def coerce(o)
+                    @value.coerce(o)
+                end
             end
             @klass.values = Set.new()
             @values.each { |i|
@@ -169,7 +193,6 @@ module XDR::AST
             @klass
         end
     end
-
 
     class EnumerationConstant < Type
         attr_reader :name
@@ -242,6 +265,10 @@ module XDR::AST
 
                     @value = value
                 end
+
+                def to_s
+                    @value.to_s
+                end
             end
             @klass.length = @length
             @klass
@@ -284,6 +311,10 @@ module XDR::AST
                            value.length > self.class.maxlen
 
                     @value = value
+                end
+
+                def to_s
+                    @value.to_s
                 end
             end
             @klass.maxlen = @maxlen

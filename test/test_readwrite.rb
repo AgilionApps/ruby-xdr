@@ -24,6 +24,8 @@ class ReadWriteTest < Test::Unit::TestCase
             e1 = ReadWriteTest::Test_enum0::A.new()
             r.read(e1)
             assert_equal(e1.value, 1)
+
+            assert_equal(0 + e0 + e1, 2)
         end
     end
 
@@ -103,6 +105,8 @@ TEST
         double = ReadWriteTest::Test_basics0::Mydouble.new()
         r.read(double)
         assert_equal(double.value, 18)
+
+        assert(0 + int + uint == 27)
 
         quad = ReadWriteTest::Test_basics0::Myquad.new()
         assert_raise NotImplementedError do
