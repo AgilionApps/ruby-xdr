@@ -62,17 +62,29 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new()
+            @klass = Class.new(XDR::Type)
             @klass.class_eval do
                 class << self; attr_accessor :values; end
 
+                attr_accessor :value
+
                 def initialize(value = nil)
+                    self.value = value unless value.nil?
+                end
+
+                def read(xdr)
+                    self.value = xdr.int32()
+                end
+
+                def write(xdr)
+                    xdr.int32(@value)
+                end
+
+                def value=(value)
+                    raise ArgumentError, "#{value} is not a permitted " +
+                        "value for enumeration" \
+                        unless self.class.values.include?(value)
                     @value = value
-                    unless value.nil?
-                        raise ArgumentError, "#{value} is not a permitted " +
-                            "value for enumeration" \
-                            unless self.class.values.include?(value)
-                    end
                 end
             end
             @klass.values = Set.new()

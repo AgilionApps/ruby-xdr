@@ -18,6 +18,8 @@
 module XDR
     class Error < RuntimeError; end
 
+    class Type; end
+
     class Reader
         def initialize(io)
             @io = io
@@ -109,6 +111,10 @@ module XDR
         # Void doesn't require a representation. Included only for completeness.
         def void()
             nil
+        end
+
+        def read(type)
+            type.read(self)
         end
 
         private
@@ -284,6 +290,10 @@ module XDR
         def void(val)
             # Void does nothing
             self
+        end
+
+        def write(type)
+            type.write(self)
         end
     end
 end
