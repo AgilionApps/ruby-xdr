@@ -203,4 +203,54 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_string
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef string s5<5>;
+typedef string s<>;
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_string0')
+        end
+
+        string0 = nil
+        assert_raise ArgumentError do
+            string0 = ReadWriteTest::Test_string0::S5.new("123456")
+        end
+        string0 = ReadWriteTest::Test_string0::S5.new()
+        assert_raise ArgumentError do
+            string0.value = "123456"
+        end
+        assert_nothing_raised do
+            string0.value = "1234"
+            string0.value = "12345"
+        end
+
+        string1 = nil
+        assert_nothing_raised do
+            string1 = ReadWriteTest::Test_string0::S.new("123456")
+        end
+
+        io = StringIO.new("")
+        w = XDR::Writer.new(io)
+
+        w.write(string0)
+        w.write(string1)
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        string2 = ReadWriteTest::Test_string0::S5.new()
+        r.read(string2)
+        assert_equal(string2.value, "12345")
+
+        string3 = ReadWriteTest::Test_string0::S.new()
+        r.read(string3)
+        assert_equal(string3.value, "123456")
+
+        assert(io.eof?)
+    end
 end
