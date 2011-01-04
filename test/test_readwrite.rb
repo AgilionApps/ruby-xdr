@@ -253,4 +253,61 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_array
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef int myint;
+typedef myint myarray[4];
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_array0')
+        end
+
+        a0 = nil
+        assert_raise ArgumentError do
+            a0 = ReadWriteTest::Test_array0::Myarray.new(1)
+        end
+        assert_nothing_raised do
+            a0 = ReadWriteTest::Test_array0::Myarray.new()
+            a0 = ReadWriteTest::Test_array0::Myarray.new([1, 2])
+            a0.to_a.each { |i|
+                assert(i.is_a?(ReadWriteTest::Test_array0::Myint))
+            }
+
+            a0 = ReadWriteTest::Test_array0::Myarray.new([
+                ReadWriteTest::Test_array0::Myint.new(1),
+                ReadWriteTest::Test_array0::Myint.new(2)
+            ])
+            a0.to_a.each { |i|
+                assert(i.is_a?(ReadWriteTest::Test_array0::Myint))
+            }
+        end
+
+        io = StringIO.new("");
+        w = XDR::Writer.new(io)
+
+        assert_raise ArgumentError do
+            w.write(a0)
+        end
+
+        a0.push(3)
+        a0[3] = 4
+
+        assert_nothing_raised do
+            w.write(a0)
+        end
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+        a1 = r.read(ReadWriteTest::Test_array0::Myarray)
+        
+        (0..3).each { |i|
+            assert_equal(a1[i].to_i, i + 1)
+        }
+
+        assert(io.eof?)
+    end
 end

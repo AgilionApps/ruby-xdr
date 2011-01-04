@@ -379,7 +379,84 @@ module XDR::AST
         def initialize(context, type, length)
             super(context)
             @type = type
-            @length = length
+            @length = Integer(length)
+        end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Type)
+            @klass.class_eval do
+                class << self; attr_accessor :length, :type; end
+
+                attr_accessor :value
+
+                def initialize(value = nil)
+                    @value = []
+
+                    if !value.nil? then
+                        raise ArgumentError, "Initial value of array " +
+                            "type must be an array" \
+                            unless value.is_a?(Object::Array)
+
+                        value.each { |i|
+                            self.push(i)
+                        }
+                    end
+                end
+
+                def read(xdr)
+                    (1..self.class.length).each { |i|
+                        element = xdr.read(self.class.type)
+                        value.push(element)
+                    }
+                    value
+                end
+
+                def write(xdr)
+                    raise ArgumentError, "Value of array type must be an " +
+                        "array of length #{self.class.length}" \
+                        unless @value.is_a?(Object::Array) &&
+                        @value.length == self.class.length
+
+                    @value.each { |i|
+                        xdr.write(i)
+                    }
+                end
+
+                def push(*o)
+                    o.each { |i|
+                        i = self.class.type.new(i) \
+                            unless i.is_a?(self.class.type)
+                        @value.push(i)
+                    }
+                end
+
+                def []=(i, o)
+                    o = self.class.type.new(o) \
+                        unless o.is_a?(self.class.type)
+                    @value[i] = o
+                end
+
+                def [](i)
+                    @value[i]
+                end
+
+                def length
+                    @value.length
+                end
+
+                def to_s
+                    @value.to_s
+                end
+
+                def to_a
+                    @value.to_a
+                end
+            end
+            @klass.length = @length
+            @klass.type = @type.generate(mod, parser)
+            @klass
         end
     end
 
