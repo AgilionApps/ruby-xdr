@@ -117,7 +117,7 @@ module XDR
         def _read_type(length, typename)
             bytes = @io.read(length)
 
-            raise EOFError "Unexpected EOF reading #{typename}" \
+            raise EOFError, "Unexpected EOF reading #{typename}" \
                 if bytes.nil? || bytes.length != length
 
             bytes
