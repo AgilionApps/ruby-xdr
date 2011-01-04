@@ -16,6 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 require 'set'
+require 'xdr/types'
 
 module XDR::AST
     class Type
@@ -36,36 +37,7 @@ module XDR::AST
 
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :xdrmethod; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    self.value = value unless value.nil?
-                end
-
-                def read(xdr)
-                    self.value = xdr.send(self.class.xdrmethod)
-                end
-
-                def write(xdr)
-                    xdr.send(self.class.xdrmethod, @value)
-                end
-
-                def to_s
-                    @value.to_s
-                end
-
-                def to_i
-                    @value.to_i
-                end
-
-                def coerce(o)
-                    @value.coerce(o)
-                end
-            end
+            @klass = Class.new(XDR::Types::Basic)
             @klass.xdrmethod = @xdrmethod
             @klass
         end
@@ -145,43 +117,7 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :values; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    self.value = value unless value.nil?
-                end
-
-                def read(xdr)
-                    self.value = xdr.int32()
-                end
-
-                def write(xdr)
-                    xdr.int32(@value)
-                end
-
-                def value=(value)
-                    raise ArgumentError, "#{value} is not a permitted " +
-                        "value for enumeration" \
-                        unless self.class.values.include?(value)
-                    @value = value
-                end
-
-                def to_s
-                    @value.to_s
-                end
-
-                def to_i
-                    @value.to_i
-                end
-
-                def coerce(o)
-                    @value.coerce(o)
-                end
-            end
+            @klass = Class.new(XDR::Types::Enumeration)
             @klass.values = Set.new()
             @values.each { |i|
                 val = i.value
@@ -240,36 +176,7 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :length; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    self.value = value unless value.nil?
-                end
-
-                def read(xdr)
-                    @value = xdr.bytes(self.class.length)
-                end
-
-                def write(xdr)
-                    xdr.bytes(@value)
-                end
-
-                def value=(value)
-                    raise ArgumentError, "Value of this opaque " +
-                        "must be #{self.class.length} bytes" \
-                        unless value.length == self.class.length
-
-                    @value = value
-                end
-
-                def to_s
-                    @value.to_s
-                end
-            end
+            @klass = Class.new(XDR::Types::Opaque)
             @klass.length = @length
             @klass
         end
@@ -286,37 +193,7 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :maxlen; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    self.value = value unless value.nil?
-                end
-
-                def read(xdr)
-                    self.value = xdr.var_bytes()
-                end
-
-                def write(xdr)
-                    xdr.var_bytes(@value)
-                end
-
-                def value=(value)
-                    raise ArgumentError, "Value of this opaque must not " +
-                        "exceed #{self.class.maxlen} bytes" \
-                        if !self.class.maxlen.nil? &&
-                           value.length > self.class.maxlen
-
-                    @value = value
-                end
-
-                def to_s
-                    @value.to_s
-                end
-            end
+            @klass = Class.new(XDR::Types::VarOpaque)
             @klass.maxlen = @maxlen
             @klass
         end
@@ -333,41 +210,7 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :maxlen; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    self.value = value unless value.nil?
-                end
-
-                def read(xdr)
-                    self.value = xdr.string()
-                end
-
-                def write(xdr)
-                    xdr.string(@value)
-                end
-
-                def value=(value)
-                    raise ArgumentError, "Value of this string must not " +
-                        "exceed #{self.class.maxlen} bytes" \
-                        if !self.class.maxlen.nil? &&
-                           value.length > self.class.maxlen
-
-                    @value = value
-                end
-
-                def to_s
-                    @value.to_s
-                end
-
-                def to_i
-                    @value.to_i
-                end
-            end
+            @klass = Class.new(XDR::Types::String)
             @klass.maxlen = @maxlen
             @klass
         end
@@ -385,75 +228,7 @@ module XDR::AST
         def generate(mod, parser, visited = nil)
             return @klass unless @klass.nil?
 
-            @klass = Class.new(XDR::Type)
-            @klass.class_eval do
-                class << self; attr_accessor :length, :type; end
-
-                attr_accessor :value
-
-                def initialize(value = nil)
-                    @value = []
-
-                    if !value.nil? then
-                        raise ArgumentError, "Initial value of array " +
-                            "type must be an array" \
-                            unless value.is_a?(Object::Array)
-
-                        value.each { |i|
-                            self.push(i)
-                        }
-                    end
-                end
-
-                def read(xdr)
-                    (1..self.class.length).each { |i|
-                        element = xdr.read(self.class.type)
-                        value.push(element)
-                    }
-                    value
-                end
-
-                def write(xdr)
-                    raise ArgumentError, "Value of array type must be an " +
-                        "array of length #{self.class.length}" \
-                        unless @value.is_a?(Object::Array) &&
-                        @value.length == self.class.length
-
-                    @value.each { |i|
-                        xdr.write(i)
-                    }
-                end
-
-                def push(*o)
-                    o.each { |i|
-                        i = self.class.type.new(i) \
-                            unless i.is_a?(self.class.type)
-                        @value.push(i)
-                    }
-                end
-
-                def []=(i, o)
-                    o = self.class.type.new(o) \
-                        unless o.is_a?(self.class.type)
-                    @value[i] = o
-                end
-
-                def [](i)
-                    @value[i]
-                end
-
-                def length
-                    @value.length
-                end
-
-                def to_s
-                    @value.to_s
-                end
-
-                def to_a
-                    @value.to_a
-                end
-            end
+            @klass = Class.new(XDR::Types::Array)
             @klass.length = @length
             @klass.type = @type.generate(mod, parser)
             @klass
