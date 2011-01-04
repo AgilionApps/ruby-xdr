@@ -30,6 +30,8 @@ module XDR
     class DuplicateTypedefError < ParseError; end
     class ConstantDefinitionLoop < ParseError; end
     class TypeDefinitionLoop < ParseError; end
+    class NonExistentTypeError < ParseError; end
+    class NonExistentConstantError < ParseError; end
 
     class Token
         attr_reader :value, :context
