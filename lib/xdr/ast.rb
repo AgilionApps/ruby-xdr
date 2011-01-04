@@ -251,9 +251,43 @@ module XDR::AST
     class VarOpaque < Type
         attr_reader :max
 
-        def initialize(context, max = nil)
+        def initialize(context, maxlen = nil)
             super(context)
-            @max = max
+            @maxlen = Integer(maxlen) unless maxlen.nil?
+        end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Type)
+            @klass.class_eval do
+                class << self; attr_accessor :maxlen; end
+
+                attr_accessor :value
+
+                def initialize(value = nil)
+                    self.value = value unless value.nil?
+                end
+
+                def read(xdr)
+                    self.value = xdr.var_bytes()
+                end
+
+                def write(xdr)
+                    xdr.var_bytes(@value)
+                end
+
+                def value=(value)
+                    raise ArgumentError, "Value of this opaque must not " +
+                        "exceed #{self.class.maxlen} bytes" \
+                        if !self.class.maxlen.nil? &&
+                           value.length > self.class.maxlen
+
+                    @value = value
+                end
+            end
+            @klass.maxlen = @maxlen
+            @klass
         end
     end
 

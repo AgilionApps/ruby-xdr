@@ -149,4 +149,54 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_varopaque
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef opaque myopaque5<5>;
+typedef opaque myopaque<>;
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_varopaque0')
+        end
+
+        vo0 = nil
+        assert_raise ArgumentError do
+            vo0 = ReadWriteTest::Test_varopaque0::Myopaque5.new("123456")
+        end
+        vo0 = ReadWriteTest::Test_varopaque0::Myopaque5.new()
+        assert_raise ArgumentError do
+            vo0.value = "123456"
+        end
+        assert_nothing_raised do
+            vo0.value = "1234"
+            vo0.value = "12345"
+        end
+
+        vo1 = nil
+        assert_nothing_raised do
+            vo1 = ReadWriteTest::Test_varopaque0::Myopaque.new("123456")
+        end
+
+        io = StringIO.new("")
+        w = XDR::Writer.new(io)
+
+        w.write(vo0)
+        w.write(vo1)
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        vo2 = ReadWriteTest::Test_varopaque0::Myopaque5.new()
+        r.read(vo2)
+        assert_equal(vo2.value, "12345")
+
+        vo3 = ReadWriteTest::Test_varopaque0::Myopaque.new()
+        r.read(vo3)
+        assert_equal(vo3.value, "123456")
+
+        assert(io.eof?)
+    end
 end
