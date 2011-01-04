@@ -211,7 +211,40 @@ module XDR::AST
 
         def initialize(context, length)
             super(context)
-            @length = length
+            @length = Integer(length)
+        end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Type)
+            @klass.class_eval do
+                class << self; attr_accessor :length; end
+
+                attr_accessor :value
+
+                def initialize(value = nil)
+                    self.value = value unless value.nil?
+                end
+
+                def read(xdr)
+                    @value = xdr.bytes(self.class.length)
+                end
+
+                def write(xdr)
+                    xdr.bytes(@value)
+                end
+
+                def value=(value)
+                    raise ArgumentError, "Value of this opaque " +
+                        "must be #{self.class.length} bytes" \
+                        unless value.length == self.class.length
+
+                    @value = value
+                end
+            end
+            @klass.length = @length
+            @klass
         end
     end
 

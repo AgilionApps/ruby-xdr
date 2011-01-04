@@ -111,4 +111,42 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_opaque
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef opaque myopaque[5];
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_opaque0')
+        end
+
+        opaque0 = nil
+        assert_raise ArgumentError do
+            opaque0 = ReadWriteTest::Test_opaque0::Myopaque.new("foo")
+        end
+        opaque0 = ReadWriteTest::Test_opaque0::Myopaque.new()
+        assert_raise ArgumentError do
+            opaque0.value = "foo"
+        end
+        assert_nothing_raised do
+            opaque0.value = "12345"
+        end
+
+        io = StringIO.new("")
+        w = XDR::Writer.new(io)
+
+        w.write(opaque0)
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        opaque1 = ReadWriteTest::Test_opaque0::Myopaque.new()
+        r.read(opaque1)
+        assert_equal(opaque1.value, "12345")
+
+        assert(io.eof?)
+    end
 end
