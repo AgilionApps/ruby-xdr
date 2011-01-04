@@ -111,7 +111,7 @@ module XDR
 
         def lookup_type(name)
             raise NonExistentTypeError.new("Use of undefined type " +
-                "#{name.name}", name.context) \
+                "#{name.value}", name.context) \
                 unless @typedefs.has_key?(name.value)
 
             @typedefs[name.value]
