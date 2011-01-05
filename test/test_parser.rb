@@ -16,7 +16,8 @@ class ParserTest < Test::Unit::TestCase
         'typedef hyper a1[5];',
 
         #
-        'typedef unsigned hyper A_<b>;',
+        'const b = 1;
+         typedef unsigned hyper A_<b>;',
 
         #
         'typedef float abc<>;',
