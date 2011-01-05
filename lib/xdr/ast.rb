@@ -238,10 +238,19 @@ module XDR::AST
     class VarArray < Type
         attr_reader :type, :max
 
-        def initialize(context, type, max = nil)
+        def initialize(context, type, maxlen = nil)
             super(context)
             @type = type
-            @max = max
+            @maxlen = Integer(maxlen.value) unless maxlen.nil?
+        end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Types::VarArray)
+            @klass.type = @type.generate(mod, parser)
+            @klass.maxlen = @maxlen
+            @klass
         end
     end
 

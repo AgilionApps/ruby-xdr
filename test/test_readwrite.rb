@@ -310,4 +310,82 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_vararray
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+enum myenum { A, B, C, D, E };
+typedef myenum myarray4<E>;
+typedef myenum myarray<>;
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_vararray0')
+        end
+
+        a0 = nil
+        assert_raise ArgumentError do
+            a0 = ReadWriteTest::Test_vararray0::Myarray4.new(0)
+        end
+        assert_nothing_raised do
+            a0 = ReadWriteTest::Test_vararray0::Myarray4.new()
+            a0 = ReadWriteTest::Test_vararray0::Myarray4.new([0, 1])
+            a0.to_a.each { |i|
+                assert(i.is_a?(ReadWriteTest::Test_vararray0::Myenum))
+            }
+
+            a0 = ReadWriteTest::Test_vararray0::Myarray4.new([
+                ReadWriteTest::Test_vararray0::Myenum.new(0),
+                ReadWriteTest::Test_vararray0::Myenum.new(1)
+            ])
+            a0.push(2, 3)
+            a0.to_a.each { |i|
+                assert(i.is_a?(ReadWriteTest::Test_vararray0::Myenum))
+            }
+        end
+
+        io = StringIO.new("");
+        w = XDR::Writer.new(io)
+
+        assert_nothing_raised do
+            w.write(a0)
+        end
+
+        assert_raise ArgumentError do
+            a0.push(5) # Invalid enum value
+        end
+
+        a0.push(3)
+        assert_raise ArgumentError do
+            w.write(a0) # Array too long
+        end
+
+        assert_nothing_raised do
+            a1 = ReadWriteTest::Test_vararray0::Myarray.new([0, 1, 2, 3, 0, 1])
+            w.write(a1)
+        end
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+        a2 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
+        
+        (0..3).each { |i|
+            assert_equal(a2[i].to_i, i)
+        }
+
+        a3 = r.read(ReadWriteTest::Test_vararray0::Myarray)
+        assert_equal(a3.length, 6)
+        (0..5).each { |i|
+            assert_equal(a3[i].to_i, i % 4)
+        }
+
+        assert(io.eof?)
+
+        io.rewind()
+        a4 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
+        assert_raise ArgumentError do
+            a5 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
+        end
+    end
 end

@@ -179,8 +179,8 @@ module XDR::Types
         end
     end
 
-    class Array
-        class << self; attr_accessor :length, :type; end
+    class GenericArray
+        class << self; attr_accessor :type; end
 
         attr_accessor :value
 
@@ -196,25 +196,6 @@ module XDR::Types
                     self.push(i)
                 }
             end
-        end
-
-        def read(xdr)
-            (1..self.class.length).each { |i|
-                element = xdr.read(self.class.type)
-                value.push(element)
-            }
-            value
-        end
-
-        def write(xdr)
-            raise ArgumentError, "Value of array type must be an " +
-                "array of length #{self.class.length}" \
-                unless @value.is_a?(Object::Array) &&
-                @value.length == self.class.length
-
-            @value.each { |i|
-                xdr.write(i)
-            }
         end
 
         def push(*o)
@@ -243,6 +224,62 @@ module XDR::Types
 
         def to_a
             @value.to_a
+        end
+
+        private
+
+        def readraw(xdr, length)
+            (1..length).each { |i|
+                element = xdr.read(self.class.type)
+                value.push(element)
+            }
+            value
+        end
+
+        def writeraw(xdr)
+            @value.each { |i|
+                xdr.write(i)
+            }
+        end
+    end
+
+    class Array < GenericArray
+        class << self; attr_accessor :length; end
+
+        def read(xdr)
+            readraw(xdr, self.class.length)
+        end
+
+        def write(xdr)
+            raise ArgumentError, "Value of array type must be an " +
+                "array of length #{self.class.length}" \
+                unless @value.length == self.class.length
+
+            writeraw(xdr)
+        end
+    end
+
+    class VarArray < GenericArray
+        class << self; attr_accessor :maxlen; end
+
+        def read(xdr)
+            length = xdr.uint32()
+            checklen(length)
+            readraw(xdr, length)
+        end
+
+        def write(xdr)
+            checklen(@value.length)
+            xdr.uint32(@value.length)
+            writeraw(xdr)
+        end
+
+        private
+
+        def checklen(length)
+            raise ArgumentError, "Value of array type must be an " +
+                "array of maximum length #{self.class.maxlen}" \
+                if !self.class.maxlen.nil? && length > self.class.maxlen
         end
     end
 end
