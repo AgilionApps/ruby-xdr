@@ -287,7 +287,7 @@ TEST
         io = StringIO.new("");
         w = XDR::Writer.new(io)
 
-        assert_raise ArgumentError do
+        assert_raise XDR::Types::InvalidStateError do
             w.write(a0)
         end
 
@@ -355,7 +355,7 @@ TEST
         end
 
         a0.push(3)
-        assert_raise ArgumentError do
+        assert_raise XDR::Types::InvalidStateError do
             w.write(a0) # Array too long
         end
 
@@ -384,7 +384,7 @@ TEST
 
         io.rewind()
         a4 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
-        assert_raise ArgumentError do
+        assert_raise XDR::Types::InvalidStateError do
             a5 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
         end
     end

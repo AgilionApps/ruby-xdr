@@ -16,6 +16,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 module XDR::Types
+    class InvalidStateError < RuntimeError; end
+
     class Basic
         class << self; attr_accessor :xdrmethod; end
 
@@ -30,6 +32,7 @@ module XDR::Types
         end
 
         def write(xdr)
+            raise InvalidStateError if @value.nil?
             xdr.send(self.class.xdrmethod, @value)
         end
 
@@ -60,6 +63,7 @@ module XDR::Types
         end
 
         def write(xdr)
+            raise InvalidStateError if @value.nil?
             xdr.int32(@value)
         end
 
@@ -97,6 +101,7 @@ module XDR::Types
         end
 
         def write(xdr)
+            raise InvalidStateError if @value.nil?
             xdr.bytes(@value)
         end
 
@@ -127,6 +132,7 @@ module XDR::Types
         end
 
         def write(xdr)
+            raise InvalidStateError if @value.nil?
             xdr.var_bytes(@value)
         end
 
@@ -158,6 +164,7 @@ module XDR::Types
         end
 
         def write(xdr)
+            raise InvalidStateError if @value.nil?
             xdr.string(@value)
         end
 
@@ -251,7 +258,7 @@ module XDR::Types
         end
 
         def write(xdr)
-            raise ArgumentError, "Value of array type must be an " +
+            raise InvalidStateError, "Value of array type must be an " +
                 "array of length #{self.class.length}" \
                 unless @value.length == self.class.length
 
@@ -277,7 +284,7 @@ module XDR::Types
         private
 
         def checklen(length)
-            raise ArgumentError, "Value of array type must be an " +
+            raise InvalidStateError, "Value of array type must be an " +
                 "array of maximum length #{self.class.maxlen}" \
                 if !self.class.maxlen.nil? && length > self.class.maxlen
         end
