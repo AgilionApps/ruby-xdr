@@ -289,4 +289,76 @@ module XDR::Types
                 if !self.class.maxlen.nil? && length > self.class.maxlen
         end
     end
+
+    class Structure
+        class << self; attr_accessor :fields, :classes; end
+
+        # fields is an array of [class, name] pairs
+        def self.init(fields)
+            self.fields = []
+            self.classes = []
+
+            # Create an accessor pair for each defined field
+            fields.each { |i|
+                klass = i.first
+                name = i.last
+
+                self.fields.push(name)
+                self.classes.push(klass)
+
+                var = ("@" + name.to_s).to_sym
+
+                attr_reader(name)
+
+                # The setter will instantiate a new object of the correct type
+                # if required
+                define_method((name.to_s + "=").to_sym, lambda { |value|
+                    value = klass.new(value) unless value.is_a?(klass)
+                    instance_variable_set(var, value)
+                })
+            }
+        end
+
+        def initialize(values = nil)
+            values.each_pair { |name,value|
+                method = (name.to_s + "=").to_sym
+
+                raise ArgumentError, "Field #{name.to_s} has not been " +
+                    "defined for this class" \
+                    unless self.class.method_defined?(method)
+
+                self.send(method, value)
+            } unless values.nil?
+        end
+
+        def read(xdr)
+            i = 0
+            while (i < self.class.fields.length) do
+                field = self.class.fields[i]
+                klass = self.class.classes[i]
+
+                method = (field.to_s + "=").to_sym
+                self.send(method, xdr.read(klass))
+
+                i += 1
+            end
+        end
+
+        def write(xdr)
+            i = 0
+            while (i < self.class.fields.length) do
+                field = self.class.fields[i]
+                klass = self.class.classes[i]
+
+                value = self.send(field)
+                raise InvalidStateError, "Field #{field.to_s} has not been " +
+                    "set" \
+                    if value.nil?
+
+                xdr.write(value)
+
+                i += 1
+            end
+        end
+    end
 end

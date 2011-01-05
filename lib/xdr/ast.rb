@@ -261,6 +261,22 @@ module XDR::AST
             super(context)
             @fields = fields
         end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(XDR::Types::Structure)
+            fields = []
+            @fields.each { |i|
+                type = i.first
+                name = i.last.value.to_sym
+
+                klass = type.generate(mod, parser)
+                fields.push([klass, name])
+            }
+            @klass.init(fields)
+            @klass
+        end
     end
 
     class Union < Type

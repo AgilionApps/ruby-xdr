@@ -388,4 +388,75 @@ TEST
             a5 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
         end
     end
+
+    def test_structure
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+typedef string mystring<>;
+struct mystruct {
+    unsigned hyper a;
+    mystring b<>;
+    struct {
+        int a;
+        unsigned int b;
+    } c;
+    double d;
+};
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_structure0')
+        end
+
+        a0 = nil
+        assert_raise ArgumentError do
+            a0 = ReadWriteTest::Test_structure0::Mystruct.new(:e => 0)
+        end
+        assert_nothing_raised do
+            a0 = ReadWriteTest::Test_structure0::Mystruct.new(
+                :a => 21,
+                :b => [ "string1", "string2" ],
+                :c => { :a => 0, :b => 1 }
+            )
+        end
+
+        assert_equal(a0.a.to_i, 21)
+        assert_equal(a0.b[0].to_s, "string1")
+        assert_equal(a0.b[1].to_s, "string2")
+        assert_equal(a0.c.a.to_i, 0)
+        assert_equal(a0.c.b.to_i, 1)
+
+        io = StringIO.new("");
+        w = XDR::Writer.new(io)
+
+        assert_raise XDR::Types::InvalidStateError do
+            w.write(a0)
+        end
+
+        # The above will have partially written data
+        io.flush()
+        io.rewind()
+
+        a0.d = 2
+        assert_nothing_raised do
+            w.write(a0)
+        end
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        a1 = nil
+        assert_nothing_raised do
+            a1 = r.read(ReadWriteTest::Test_structure0::Mystruct)
+        end
+
+        assert_equal(a1.a.to_i, 21)
+        assert_equal(a1.b[0].to_s, "string1")
+        assert_equal(a1.b[1].to_s, "string2")
+        assert_equal(a1.c.a.to_i, 0)
+        assert_equal(a1.c.b.to_i, 1)
+
+        assert(io.eof?)
+    end
 end
