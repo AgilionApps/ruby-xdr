@@ -316,7 +316,7 @@ module XDR::AST
                 if visited.include?(self)
             visited.add(self)
 
-            @value = @parser.lookup_constant(name).value(visited)
+            @value = @parser.lookup_constant(@name).value(visited)
             @value
         end
     end

@@ -93,7 +93,7 @@ module XDR
 
         def lookup_constant(name)
             raise NonExistentConstantError.new("Use of undefined " +
-                "constant #{name.name}", name.context) \
+                "constant #{name.value}", name.context) \
                 unless @constants.has_key?(name.value)
 
             @constants[name.value]
