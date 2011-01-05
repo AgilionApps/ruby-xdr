@@ -170,7 +170,7 @@ module XDR::AST
 
         def initialize(context, length)
             super(context)
-            @length = Integer(length)
+            @length = Integer(length.value)
         end
 
         def generate(mod, parser, visited = nil)
@@ -187,7 +187,7 @@ module XDR::AST
 
         def initialize(context, maxlen = nil)
             super(context)
-            @maxlen = Integer(maxlen) unless maxlen.nil?
+            @maxlen = Integer(maxlen.value) unless maxlen.nil?
         end
 
         def generate(mod, parser, visited = nil)
@@ -204,7 +204,7 @@ module XDR::AST
 
         def initialize(context, maxlen = nil)
             super(context)
-            @maxlen = Integer(maxlen) unless maxlen.nil?
+            @maxlen = Integer(maxlen.value) unless maxlen.nil?
         end
 
         def generate(mod, parser, visited = nil)
@@ -222,7 +222,7 @@ module XDR::AST
         def initialize(context, type, length)
             super(context)
             @type = type
-            @length = Integer(length)
+            @length = Integer(length.value)
         end
 
         def generate(mod, parser, visited = nil)
