@@ -192,7 +192,7 @@ module XDR
             raise ArgumentError, "bool() requires a boolean argument" \
                 unless val == true || val == false
 
-            self.int(val ? 1 : 0)
+            self.int32(val ? 1 : 0)
         end
 
         # XXX: In perl, int64 and uint64 would be pack("q>") and pack("Q>")
