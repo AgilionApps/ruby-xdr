@@ -155,7 +155,7 @@ switch_body:
 
 case_list:
       case_spec declaration ';'
-      { result = [ val[0], val[1] ] }
+      { result = [[val[0], val[1]]] }
     | case_list case_spec declaration ';'
       { result = val[0].push([val[1], val[2]]) }
 
