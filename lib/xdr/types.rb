@@ -303,6 +303,9 @@ module XDR::Types
                 klass = i.first
                 name = i.last
 
+                # Skip over voids
+                next if name.nil?
+
                 self.fields.push(name)
                 self.classes.push(klass)
 
