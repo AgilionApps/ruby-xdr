@@ -459,4 +459,127 @@ TEST
 
         assert(io.eof?)
     end
+
+    def test_union
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+union myunion switch (bool s) {
+    case TRUE: int a;
+    case FALSE:
+        union switch (int a) {
+            case 0:
+            case 1:
+                int b;
+            case 2:
+                enum { A, B, C} c;
+            default:
+                void;
+        } b;
+};
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_union0')
+        end
+
+        assert_raise ArgumentError do
+            u0 = ReadWriteTest::Test_union0::Myunion.new(:e => 0)
+        end
+        w0 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => true,
+            :a => 5
+        )
+        w1 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => false,
+            :b => {
+                :a => 0,
+                :b => 1
+            }
+        )
+        w2 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => false,
+            :b => {
+                :a => 1,
+                :b => 2
+            }
+        )
+        w3 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => false,
+            :b => {
+                :a => 2,
+                :c => 0
+            }
+        )
+        w4 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => false,
+            :b => {
+                :a => 3
+            }
+        )
+        w5 = ReadWriteTest::Test_union0::Myunion.new(
+            :s => false,
+            :a => 1
+        )
+
+        assert_equal(w0.s.value, true)
+        assert_equal(w0.a.to_i, 5)
+        assert_equal(w1.s.value, false)
+        assert_equal(w1.b.a.to_i, 0)
+        assert_equal(w1.b.b.to_i, 1)
+        assert_equal(w2.s.value, false)
+        assert_equal(w2.b.a.to_i, 1)
+        assert_equal(w2.b.b.to_i, 2)
+        assert_equal(w3.s.value, false)
+        assert_equal(w3.b.a.to_i, 2)
+        assert_equal(w3.b.c.to_i, 0)
+        assert_equal(w4.s.value, false)
+        assert_equal(w4.b.a.to_i, 3)
+
+        io = StringIO.new("");
+        w = XDR::Writer.new(io)
+
+        assert_raise XDR::Types::InvalidStateError do
+            w.write(w5)
+        end
+
+        io.flush()
+        io.rewind()
+
+        assert_nothing_raised do
+            w.write(w0)
+            w.write(w1)
+            w.write(w2)
+            w.write(w3)
+            w.write(w4)
+        end
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        r0 = r1 = r2 = r3 = r4 = nil
+        assert_nothing_raised do
+            r0 = r.read(ReadWriteTest::Test_union0::Myunion)
+            r1 = r.read(ReadWriteTest::Test_union0::Myunion)
+            r2 = r.read(ReadWriteTest::Test_union0::Myunion)
+            r3 = r.read(ReadWriteTest::Test_union0::Myunion)
+            r4 = r.read(ReadWriteTest::Test_union0::Myunion)
+        end
+
+        assert_equal(r0.s.value, true)
+        assert_equal(r0.a.to_i, 5)
+        assert_equal(r1.s.value, false)
+        assert_equal(r1.b.a.to_i, 0)
+        assert_equal(r1.b.b.to_i, 1)
+        assert_equal(r2.s.value, false)
+        assert_equal(r2.b.a.to_i, 1)
+        assert_equal(r2.b.b.to_i, 2)
+        assert_equal(r3.s.value, false)
+        assert_equal(r3.b.a.to_i, 2)
+        assert_equal(r3.b.c.to_i, 0)
+        assert_equal(r4.s.value, false)
+        assert_equal(r4.b.a.to_i, 3)
+
+        assert(io.eof?)
+    end
 end

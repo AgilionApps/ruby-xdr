@@ -288,6 +288,32 @@ module XDR::AST
             @cases = cases
             @default = default
         end
+
+        def generate(mod, parser, visited = nil)
+            return @klass unless @klass.nil?
+
+            @switch[0] = @switch.first.generate(mod, parser, visited)
+            @switch[1] = @switch.last.to_s.to_sym
+
+            @cases = @cases.map { |i|
+                caselist = i.first.map { |j| j.value }
+                decl = i.last
+                klass = decl.first.generate(mod, parser, visited)
+                field = decl.last.to_s.to_sym unless decl.last.nil?
+
+                [caselist, [klass, field]]
+            }
+
+            unless @default.nil? then
+                @default[0] = @default.first.generate(mod, parser, visited)
+                @default[1] = @default.last.to_s.to_sym \
+                    unless @default.last.nil?
+            end
+
+            @klass = Class.new(XDR::Types::Union)
+            @klass.init(@switch, @cases, @default)
+            @klass
+        end
     end
 
     class Optional < Type

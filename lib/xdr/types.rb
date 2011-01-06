@@ -364,4 +364,87 @@ module XDR::Types
             end
         end
     end
+
+    class Union < Structure
+        class << self
+            attr_accessor :switch, :default, :cases
+        end
+
+        # cases is an array of [[case, case, ...],[class, name]]
+        # switch and default are both a [class, name] pair
+        # default may be nil if there is no default
+        def self.init(switch, cases, default)
+            fields = []
+            fields.push(switch)
+            fields.push(default) unless default.nil?
+
+            self.switch = switch
+            self.default = default
+            self.cases = {}
+            cases.each { |i|
+                caselist = i.first
+                decl = i.last
+
+                caselist.each { |j|
+                    self.cases[j] = decl
+                }
+
+                fields.push(decl)
+            }
+
+            super(fields)
+        end
+
+        def read(xdr)
+            switch = xdr.read(self.class.switch.first)
+
+            method = (self.class.switch.last.to_s + "=").to_sym
+            self.send(method, switch)
+
+            arm = lookup_switch(switch)
+            field = arm.last
+            klass = arm.first
+
+            # Ignore voids
+            return if field.nil?
+
+            method = (field.to_s + "=").to_sym
+            self.send(method, xdr.read(klass))
+        end
+
+        def write(xdr)
+            switch = self.send(self.class.switch.last)
+            raise InvalidStateError, "Discriminator has not been set" \
+                if switch.nil?
+            xdr.write(switch)
+
+            arm = lookup_switch(switch)
+            field = arm.last
+
+            # Skip voids
+            return if field.nil?
+
+            value = self.send(field)
+            raise InvalidStateError, "Field #{field.to_s} must be set for " +
+                "discriminator value #{switch.value}" \
+                if value.nil?
+
+            xdr.write(value)
+        end
+
+        private
+
+        def lookup_switch(switch)
+            switch = switch.value
+            arm = self.class.cases[switch]
+            if arm.nil? then
+                raise InvalidStateError, "Discriminator value #{switch} is " +
+                    "not defined for this union, and there is no default" \
+                    if self.class.default.nil?
+
+                arm = self.class.default
+            end
+            arm
+        end
+    end
 end
