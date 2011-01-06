@@ -88,7 +88,7 @@ class ParserTest < Test::Unit::TestCase
                  case FALSE:   int d;
                  case 2:
                  case 3:       int e;
-                 default: int d;
+                 default:      int f;
              } d;
              mystring e;
          };',
