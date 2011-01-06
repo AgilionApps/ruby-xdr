@@ -70,9 +70,9 @@ value:
       CONSTANT
       { result = val[0] }
     | TRUE
-      { result = XDR::Token.new(1, val[0].context) }
+      { result = XDR::Token.new(true, val[0].context) }
     | FALSE
-      { result = XDR::Token.new(0, val[0].context) }
+      { result = XDR::Token.new(false, val[0].context) }
     | IDENT
       { result = XDR::AST::ConstRef.new(val[0].context, self, val[0]) }
 
