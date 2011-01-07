@@ -22,12 +22,43 @@ module XDR::AST
     class Type
         attr_reader :context
 
-        def initialize(context, xdrmethod = nil)
+        def initialize(context, base)
             @context = context
+            @baseclass = base
+            @generated = false
+            @klass = nil
+        end
+
+        # Return the class which will be returned by generate()
+        # It need not have been properly initialized
+        # This method MUST NOT RECURSE, or it will lead to errors generating
+        # recursive data structures
+        def base()
+            return nil if @baseclass.nil?
+
+            return @klass unless @klass.nil?
+
+            @klass = Class.new(@baseclass) if @klass.nil?
+            @klass
+        end
+
+
+        def cached()
+            self.base() if @klass.nil?
+            return @klass if @generated
+
+            @generated = true
+            nil
+        end
+    end
+
+    class Basic < Type
+        def initialize(context, xdrmethod)
+            super(context, XDR::Types::Basic)
             @xdrmethod = xdrmethod
         end
 
-        def generate(mod, parser, visited = nil);
+        def generate(mod, parser);
             # XXX: Only required because implementation is incomplete
             return nil if @xdrmethod.nil?
 
@@ -35,71 +66,78 @@ module XDR::AST
                 "#{self.class.name} without being passed xdrmethod" \
                 if @xdrmethod.nil?
 
-            return @klass unless @klass.nil?
+            cached = self.cached()
+            return cached unless cached.nil?
 
-            @klass = Class.new(XDR::Types::Basic)
             @klass.xdrmethod = @xdrmethod
             @klass
         end
     end
 
     # Basic types
-    class Integer < Type;
+    class Integer < Basic;
         def initialize(context)
             super(context, :int32)
         end
     end
 
-    class UnsignedInteger < Type;
+    class UnsignedInteger < Basic;
         def initialize(context)
             super(context, :uint32)
         end
     end
 
-    class Boolean < Type;
+    class Boolean < Basic;
         def initialize(context)
             super(context, :bool)
         end
     end
 
-    class Hyper < Type;
+    class Hyper < Basic;
         def initialize(context)
             super(context, :int64)
         end
     end
 
-    class UnsignedHyper < Type;
+    class UnsignedHyper < Basic;
         def initialize(context)
             super(context, :uint64)
         end
     end
 
-    class Float < Type;
+    class Float < Basic;
         def initialize(context)
             super(context, :float32)
         end
     end
 
-    class Double < Type;
+    class Double < Basic;
         def initialize(context)
             super(context, :float64)
         end
     end
 
-    class Quadruple < Type;
+    class Quadruple < Basic;
         def initialize(context)
             super(context, :float128)
         end
     end
 
-    class Void < Type; end
+    class Void < Type;
+        def initialize(context)
+            super(context, nil)
+        end
+
+        def generate(mod, parser)
+        end
+    end
 
     # Complex types
     class Enumeration < Type
         attr_reader :values
 
         def initialize(context, parser, values)
-            super(context)
+            super(context, XDR::Types::Enumeration)
             @values = []
             prev = nil
             values.each { |i|
@@ -111,13 +149,12 @@ module XDR::AST
                 prev = c
                 @values.push(c)
             }
-            @klass = nil
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::Enumeration)
             @klass.values = Set.new()
             @values.each { |i|
                 val = i.value
@@ -134,7 +171,7 @@ module XDR::AST
         attr_reader :name
 
         def initialize(context, parser, prev, name, value)
-            super(context)
+            super(context, nil)
             @prev = prev
             @name = name
             @value = value
@@ -169,14 +206,14 @@ module XDR::AST
         attr_reader :length
 
         def initialize(context, length)
-            super(context)
+            super(context, XDR::Types::Opaque)
             @length = Integer(length.value)
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::Opaque)
             @klass.length = @length
             @klass
         end
@@ -186,14 +223,14 @@ module XDR::AST
         attr_reader :max
 
         def initialize(context, maxlen = nil)
-            super(context)
+            super(context, XDR::Types::VarOpaque)
             @maxlen = Integer(maxlen.value) unless maxlen.nil?
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::VarOpaque)
             @klass.maxlen = @maxlen
             @klass
         end
@@ -203,14 +240,14 @@ module XDR::AST
         attr_reader :max
 
         def initialize(context, maxlen = nil)
-            super(context)
+            super(context, XDR::Types::String)
             @maxlen = Integer(maxlen.value) unless maxlen.nil?
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::String)
             @klass.maxlen = @maxlen
             @klass
         end
@@ -220,15 +257,15 @@ module XDR::AST
         attr_reader :type, :length
 
         def initialize(context, type, length)
-            super(context)
+            super(context, XDR::Types::Array)
             @type = type
             @length = Integer(length.value)
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::Array)
             @klass.length = @length
             @klass.type = @type.generate(mod, parser)
             @klass
@@ -239,15 +276,15 @@ module XDR::AST
         attr_reader :type, :max
 
         def initialize(context, type, maxlen = nil)
-            super(context)
+            super(context, XDR::Types::VarArray)
             @type = type
             @maxlen = Integer(maxlen.value) unless maxlen.nil?
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::VarArray)
             @klass.type = @type.generate(mod, parser)
             @klass.maxlen = @maxlen
             @klass
@@ -258,14 +295,14 @@ module XDR::AST
         attr_reader :fields
 
         def initialize(context, fields)
-            super(context)
+            super(context, XDR::Types::Structure)
             @fields = fields
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = Class.new(XDR::Types::Structure)
             fields = []
             @fields.each { |i|
                 type = i.first
@@ -283,34 +320,34 @@ module XDR::AST
         attr_reader :switch, :cases, :default
 
         def initialize(context, switch, cases, default = nil)
-            super(context)
+            super(context, XDR::Types::Union)
             @switch = switch
             @cases = cases
             @default = default
         end
 
-        def generate(mod, parser, visited = nil)
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @switch[0] = @switch.first.generate(mod, parser, visited)
+            @switch[0] = @switch.first.generate(mod, parser)
             @switch[1] = @switch.last.to_s.to_sym
 
             @cases = @cases.map { |i|
                 caselist = i.first.map { |j| j.value }
                 decl = i.last
-                klass = decl.first.generate(mod, parser, visited)
+                klass = decl.first.generate(mod, parser)
                 field = decl.last.to_s.to_sym unless decl.last.nil?
 
                 [caselist, [klass, field]]
             }
 
             unless @default.nil? then
-                @default[0] = @default.first.generate(mod, parser, visited)
+                @default[0] = @default.first.generate(mod, parser)
                 @default[1] = @default.last.to_s.to_sym \
                     unless @default.last.nil?
             end
 
-            @klass = Class.new(XDR::Types::Union)
             @klass.init(@switch, @cases, @default)
             @klass
         end
@@ -320,7 +357,7 @@ module XDR::AST
         attr_reader :type
 
         def initialize(context, type)
-            super(context)
+            super(context, nil)
             @type = type
         end
     end
@@ -329,14 +366,14 @@ module XDR::AST
         attr_reader :name
 
         def initialize(context, parser, name, value)
-            super(context)
+            super(context, nil)
             @name = name
             @value = value
 
             parser.add_constant(name.value, self)
         end
 
-        def generate(mod, parser, visited = nil)
+        def generate(mod, parser)
             mod.const_set(name.value.capitalize(), @value.value)
         end
 
@@ -353,7 +390,7 @@ module XDR::AST
         attr_reader :name
 
         def initialize(context, parser, name)
-            super(context)
+            super(context, nil)
             @parser = parser
             @name = name
             @value = nil
@@ -376,20 +413,23 @@ module XDR::AST
         attr_reader :name, :type
 
         def initialize(context, parser, name, type)
-            super(context)
+            super(context, nil)
             @name = name
             @type = type
-            @klass = nil
 
             # 'typedef void;' is valid, if pointless, syntax
             # Don't bother doing anything with it
             parser.add_type(name.value, self) unless name.nil?
         end
 
-        def generate(mod, parser, visited = Set.new())
-            return @klass unless @klass.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            @klass = @type.generate(mod, parser, visited)
+            # Populate @klass before recursing
+            @klass = @type.base
+
+            @klass = @type.generate(mod, parser)
             # XXX type can only be nil because the implementation is not yet
             # complete. Remove this once the implementation is complete.
             mod.const_set(@name.value.capitalize(), @klass) unless @klass.nil?
@@ -401,21 +441,35 @@ module XDR::AST
         attr_reader :name
 
         def initialize(context, name)
-            super(context)
+            super(context, nil)
             @name = name
-            @type = nil
         end
 
-        def generate(mod, parser, visited = Set.new())
-            return @type unless @type.nil?
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
 
-            raise XDR::TypeDefinitionLoop.new("Loop detected in " +
-                "definition of type #{@name.value}", @name.context) \
-                if visited.include?(self)
-            visited.add(self)
+            typedef = resolve(parser)
+            @klass = typedef.generate(mod, parser)
+            @klass
+        end
 
-            @type = parser.lookup_type(@name).generate(mod, parser, visited)
-            @type
+        private
+
+        # Resolve this typeref into a typedef which isn't itself a typeref
+        def resolve(parser)
+            visited = Set.new()
+            i = self
+            loop do
+                i = parser.lookup_type(i.name)
+
+                return i unless i.type.is_a?(TypeRef)
+
+                raise XDR::TypeDefinitionLoop.new("Loop detected in " +
+                    "definition of type #{i.name.value}", i.name.context) \
+                    if visited.include?(i)
+                visited.add(i)
+            end
         end
     end
 end
