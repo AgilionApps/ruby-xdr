@@ -159,7 +159,7 @@ module XDR
                         raise ParseError.new("Invalid constant #{tok}",
                                              self.context)
                     end
-                
+
                 elsif tok =~ MATCH_SYMBOL then
                     yield [ tok, Token.new(tok, self.context) ]
 
@@ -247,7 +247,7 @@ module XDR
 
                 # Skip whitespace
                 @scanner.scan(/\s*/)
-                @char = @scanner.pos 
+                @char = @scanner.pos
                 tok = @scanner.scan(/\S+/)
             end
 

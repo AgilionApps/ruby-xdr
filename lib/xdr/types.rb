@@ -366,9 +366,7 @@ module XDR::Types
     end
 
     class Union < Structure
-        class << self
-            attr_accessor :switch, :default, :cases
-        end
+        class << self; attr_accessor :switch, :default, :cases; end
 
         # cases is an array of [[case, case, ...],[class, name]]
         # switch and default are both a [class, name] pair
