@@ -447,4 +447,37 @@ module XDR::Types
             arm
         end
     end
+
+    class Optional
+        class << self; attr_accessor :type; end
+
+        attr_reader :value
+
+        def initialize(value = nil)
+            value = self.class.type.new(value) \
+                unless value.nil? || value.is_a?(self.class.type)
+
+            @value = value
+        end
+
+        def read(xdr)
+            if xdr.bool() then
+                @value = xdr.read(self.class.type)
+            else
+                @value = nil
+            end
+        end
+
+        def write(xdr)
+            set = !@value.nil?
+            xdr.bool(set)
+            xdr.write(@value) if set
+        end
+
+        def value=(value)
+            value = self.class.type.new(value) \
+                unless value.is_a?(self.class.type)
+            @value = value
+        end
+    end
 end

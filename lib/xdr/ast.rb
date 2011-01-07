@@ -167,11 +167,11 @@ module XDR::AST
         end
     end
 
-    class EnumerationConstant < Type
-        attr_reader :name
+    class EnumerationConstant
+        attr_reader :name, :context
 
         def initialize(context, parser, prev, name, value)
-            super(context, nil)
+            @context = context
             @prev = prev
             @name = name
             @value = value
@@ -357,8 +357,16 @@ module XDR::AST
         attr_reader :type
 
         def initialize(context, type)
-            super(context, nil)
+            super(context, XDR::Types::Optional)
             @type = type
+        end
+
+        def generate(mod, parser)
+            cache = self.cached()
+            return cache unless cache.nil?
+
+            @klass.type = type.generate(mod, parser)
+            @klass
         end
     end
 

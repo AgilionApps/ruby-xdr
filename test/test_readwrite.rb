@@ -303,7 +303,7 @@ TEST
 
         r = XDR::Reader.new(io)
         a1 = r.read(ReadWriteTest::Test_array0::Myarray)
-        
+
         (0..3).each { |i|
             assert_equal(a1[i].to_i, i + 1)
         }
@@ -369,7 +369,7 @@ TEST
 
         r = XDR::Reader.new(io)
         a2 = r.read(ReadWriteTest::Test_vararray0::Myarray4)
-        
+
         (0..3).each { |i|
             assert_equal(a2[i].to_i, i)
         }
@@ -581,5 +581,55 @@ TEST
         assert_equal(r4.b.a.to_i, 3)
 
         assert(io.eof?)
+    end
+
+    def test_optional
+        p = XDR::Parser.new(StringIO.new(<<TEST))
+struct list {
+    string val<1>;
+    list *next;
+};
+TEST
+
+        assert_nothing_raised do
+            p.load('ReadWriteTest::Test_optional0')
+        end
+
+        list0 = [ "a", "b", "c" ]
+
+        head0 = ReadWriteTest::Test_optional0::List.new()
+        cur = nil
+        list0.each { |i|
+            if cur.nil? then
+                cur = head0
+            else
+                cur.next = ReadWriteTest::Test_optional0::List.new()
+                cur = cur.next.value
+            end
+
+            cur.val = i
+        }
+        cur.next = nil
+
+        io = StringIO.new("");
+        w = XDR::Writer.new(io)
+
+        w.write(head0)
+
+        io.flush()
+        io.rewind()
+
+        r = XDR::Reader.new(io)
+
+        head1 = r.read(ReadWriteTest::Test_optional0::List)
+        list1 = []
+
+        cur = head1
+        until cur.nil? do
+            list1.push(cur.val.to_s)
+            cur = cur.next.value
+        end
+
+        assert_equal(list0, list1)
     end
 end
