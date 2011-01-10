@@ -59,9 +59,6 @@ module XDR::AST
         end
 
         def generate(mod, parser);
-            # XXX: Only required because implementation is incomplete
-            return nil if @xdrmethod.nil?
-
             raise RuntimeError, "Attempt to use default generator for " +
                 "#{self.class.name} without being passed xdrmethod" \
                 if @xdrmethod.nil?
@@ -441,9 +438,7 @@ module XDR::AST
             @klass = @type.base
 
             @klass = @type.generate(mod, parser)
-            # XXX type can only be nil because the implementation is not yet
-            # complete. Remove this once the implementation is complete.
-            mod.const_set(@name.value.capitalize(), @klass) unless @klass.nil?
+            mod.const_set(@name.value.capitalize(), @klass)
             @klass
         end
     end
