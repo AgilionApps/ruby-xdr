@@ -431,6 +431,9 @@ module XDR::AST
         end
 
         def generate(mod, parser)
+            # Ignore 'typedef void'
+            return if name.nil?
+
             cache = self.cached()
             return cache unless cache.nil?
 
