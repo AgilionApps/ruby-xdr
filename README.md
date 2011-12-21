@@ -4,6 +4,11 @@
 
 Collecting notes and resources at this stage...
 
+Racc
+
+- http://i.loveruby.net/en/projects/racc/doc/
+
+XDR
 
 - http://gitorious.org/ruby-xdr
 - http://www.koders.com/ruby/fid6C94FBF8923F21E0EC152F6D72417F83A1FB4DE7.aspx?s=ruby#L1
