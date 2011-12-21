@@ -10,4 +10,6 @@ GEMSPEC = Gem::Specification.new do |s|
     s.files         = FileList['{lib,test}/*'].to_a.sort
     s.require_path  = 'lib'
     s.has_rdoc      = false
+    
+    s.add_development_dependency "racc", "~> 1.4.7"
 end
