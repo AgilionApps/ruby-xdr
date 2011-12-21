@@ -1,0 +1,16 @@
+PATH
+  remote: .
+  specs:
+    ruby-xdr (0.01)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    racc (1.4.7)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  racc (~> 1.4.7)
+  ruby-xdr!
